@@ -1,0 +1,28 @@
+{{- if .Values.networkPolicy.enabled }}
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: {{ include "pelican-cache.fullname" . }}
+  labels:
+    {{- include "pelican-cache.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "pelican-cache.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+      ports:
+        - protocol: TCP
+          port: 8443
+        {{- if .Values.cvmfsRedirector.enabled }}
+        - protocol: TCP
+          port: 8000
+        {{- end }}
+        - protocol: TCP
+          port: 443
+  egress:
+    - {}
+{{- end }}

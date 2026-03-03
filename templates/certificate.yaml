@@ -1,0 +1,17 @@
+{{- if .Values.certificate.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "pelican-cache.fullname" . }}-cert
+  labels:
+    {{- include "pelican-cache.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.certificate.dnsNames }}
+  dnsNames:
+    {{- toYaml .Values.certificate.dnsNames | nindent 4 }}
+  {{- end }}
+  issuerRef:
+    name: {{ .Values.certificate.issuerRef.name }}
+    kind: {{ .Values.certificate.issuerRef.kind }}
+  secretName: {{ include "pelican-cache.fullname" . }}-tls
+{{- end }}

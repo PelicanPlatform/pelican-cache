@@ -1,0 +1,30 @@
+Pelican Cache {{ .Chart.AppVersion }} has been deployed.
+
+  Release:    {{ .Release.Name }}
+  Namespace:  {{ .Release.Namespace }}
+  Hostname:   {{ .Values.serverHostname }}
+  Federation: {{ .Values.federation.discoveryUrl }}
+
+{{- if .Values.certificate.enabled }}
+
+TLS certificate will be issued by {{ .Values.certificate.issuerRef.kind }}/{{ .Values.certificate.issuerRef.name }}.
+{{- if .Values.certificate.dnsNames }}
+DNS names:
+{{- range .Values.certificate.dnsNames }}
+  - {{ . }}
+{{- end }}
+{{- else }}
+WARNING: certificate.dnsNames is empty - the Certificate will have no SANs.
+Set certificate.dnsNames to the FQDN(s) of your cache.
+{{- end }}
+{{- end }}
+
+Check deployment status:
+
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+View logs:
+
+  kubectl -n {{ .Release.Namespace }} logs -l app.kubernetes.io/instance={{ .Release.Name }} -c pelican-cache
+
+For more information: https://docs.pelicanplatform.org/

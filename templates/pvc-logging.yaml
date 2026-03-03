@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "pelican-cache.fullname" . }}-logging
+  labels:
+    {{- include "pelican-cache.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.logging.storageClassName }}
+  storageClassName: {{ .Values.logging.storageClassName | quote }}
+  {{- end }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.logging.pvcSize }}

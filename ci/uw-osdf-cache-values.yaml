@@ -1,0 +1,105 @@
+# Example values mirroring the uw-osdf-cache deployment from tiger-osg-config.
+# Secrets must be created separately before installing the chart.
+
+serverHostname: "osdf-uw-cache.svc.osg-htc.org"
+
+federation:
+  discoveryUrl: "https://osg-htc.org"
+  label: osdf
+
+image:
+  repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
+  tag: "v7.23.0"
+
+cvmfsRedirector:
+  enabled: false
+
+cache:
+  storageType: hostPath
+  hostPath: /srv/pelican-cache/
+  blocksToPrefetch: 10
+  concurrency: 240
+  highWaterMark: 27000g
+  lowWaterMark: 25000g
+  filesMaxSize: 17500g
+  filesNominalSize: 17000g
+  filesBaseSize: 16500g
+
+namespaceKey:
+  type: existingSecret
+  existingSecret: uw-osdf-cache-issuer-key
+  secretKey: issuer.pem
+
+certificate:
+  enabled: true
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - osdf-uw-cache.svc.osdf-prod.chtc.io
+    - osdf-uw-cache.svc.osg-htc.org
+
+service:
+  type: LoadBalancer
+  loadBalancerIP: "128.105.82.176"
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: osdf-uw-cache.svc.osdf-prod.chtc.io
+    metallb.universe.tf/address-pool: tiger-vlan5
+
+resources:
+  cache:
+    requests:
+      cpu: "24"
+      memory: "48Gi"
+  logrotate:
+    requests:
+      cpu: "1"
+      memory: "500M"
+    limits:
+      cpu: "2"
+      memory: "2G"
+
+logging:
+  level: "debug"
+  storageClassName: 3x-replica-hdd-raddus
+  pvcSize: 50Gi
+  cache:
+    Pss: "debug"
+    Pfc: "debug"
+    PssSetOpt: "debug"
+
+lotman:
+  enabled: true
+  storageClassName: 3x-replica-hdd-raddus
+  pvcSize: 10Gi
+
+oidc:
+  enabled: true
+  existingSecret: osdf-component-oidc
+
+adminUsers: "http://cilogon.org/serverE/users/133679 http://cilogon.org/serverA/users/10832 http://cilogon.org/serverA/users/21441 http://cilogon.org/serverA/users/46022246 http://cilogon.org/serverA/users/9265706 http://cilogon.org/serverE/users/57152"
+
+webPasswordSecret: osdf-prod-pelican-webserver-passwd
+webPasswordSecretKey: osdf-pelican-webserver-passwd
+
+xrootd:
+  sitename: CHTC_PELICAN_CACHE
+  extraConfig: |
+    # Set max threads
+    xrd.sched maxt 20000
+
+nodeSelector:
+  kubernetes.io/hostname: "tiger4002.chtc.wisc.edu"
+
+tolerations:
+  - key: "node.kubernetes.io/unschedulable"
+    operator: "Exists"
+    effect: "NoSchedule"
+
+securityContext:
+  capabilities:
+    add: ["SYS_PTRACE"]
+
+extraEnv:
+  - name: XRD_CURLDISABLEX509
+    value: "1"

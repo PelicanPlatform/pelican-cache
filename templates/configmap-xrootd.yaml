@@ -1,0 +1,11 @@
+{{- if .Values.xrootd.extraConfig }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pelican-cache.fullname" . }}-xrootd
+  labels:
+    {{- include "pelican-cache.labels" . | nindent 4 }}
+data:
+  xrootd.conf: |
+{{ .Values.xrootd.extraConfig | indent 4 }}
+{{- end }}

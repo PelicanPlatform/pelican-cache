@@ -1,0 +1,17 @@
+{{- if eq .Values.cache.storageType "pvc" }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "pelican-cache.fullname" . }}-cache-data
+  labels:
+    {{- include "pelican-cache.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.cache.storageClassName }}
+  storageClassName: {{ .Values.cache.storageClassName | quote }}
+  {{- end }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.cache.pvcSize }}
+{{- end }}

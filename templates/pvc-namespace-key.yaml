@@ -1,0 +1,17 @@
+{{- if eq .Values.namespaceKey.type "pvc" }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "pelican-cache.fullname" . }}-namespace-key
+  labels:
+    {{- include "pelican-cache.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.namespaceKey.pvc.storageClassName }}
+  storageClassName: {{ .Values.namespaceKey.pvc.storageClassName | quote }}
+  {{- end }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.namespaceKey.pvc.size }}
+{{- end }}

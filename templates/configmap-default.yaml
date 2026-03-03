@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pelican-cache.fullname" . }}-default-config
+  labels:
+    {{- include "pelican-cache.labels" . | nindent 4 }}
+data:
+  pelican.yaml: |
+    ---
+    ConfigLocations:
+      - "/usr/share/pelican/config.d"
+      - "/etc/pelican/config.d"
+
+    IssuerKey: {{ include "pelican-cache.issuerKeyPath" . | quote }}
+
+    Cache:
+      StorageLocation: /cache
+      DataLocation: UNUSED
+      Port: 8443
+
+    Server:
+      WebPort: 443
+      TlsCertificate: "/etc/pelican/cert-orig/tls.crt"
+      TlsKey: "/etc/pelican/cert-orig/tls.key"
+
+    Logging:
+      LogLocation: "/var/log/pelican/pelican.log"

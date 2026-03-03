@@ -1,0 +1,258 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pelican-cache.fullname" . }}
+  labels:
+    {{- include "pelican-cache.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "pelican-cache.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/default-config: {{ include (print $.Template.BasePath "/configmap-default.yaml") . | sha256sum }}
+        checksum/instance-config: {{ include (print $.Template.BasePath "/configmap-instance.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "pelican-cache.labels" . | nindent 8 }}
+    spec:
+      enableServiceLinks: false
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        # ---- Main Pelican cache container ----
+        - name: pelican-cache
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: []
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.resources.cache }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.extraEnv }}
+          env:
+            {{- toYaml .Values.extraEnv | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: pelican
+              containerPort: 8443
+              protocol: TCP
+            - name: pelican-webui
+              containerPort: 443
+              protocol: TCP
+          volumeMounts:
+            # Pelican requires ConfigLocations directories to exist
+            - name: config-dir-placeholder
+              mountPath: /usr/share/pelican/config.d
+            - name: default-config
+              mountPath: /etc/pelican/pelican.yaml
+              subPath: pelican.yaml
+            - name: instance-config
+              mountPath: /etc/pelican/config.d
+            - name: cache-data
+              mountPath: /cache
+            - name: logging-volume
+              mountPath: /var/log/pelican
+            {{- if eq .Values.namespaceKey.type "existingSecret" }}
+            - name: namespace-key
+              readOnly: true
+              mountPath: /etc/pelican/issuer-keys/{{ .Values.namespaceKey.secretKey }}
+              subPath: {{ .Values.namespaceKey.secretKey }}
+            {{- else }}
+            - name: namespace-key
+              mountPath: /etc/pelican/jwks
+            {{- end }}
+            - name: tls-cert
+              mountPath: /etc/pelican/cert-orig
+            {{- if .Values.lotman.enabled }}
+            - name: lotman-data
+              mountPath: /var/lib/pelican/lotman
+            {{- end }}
+            {{- if .Values.oidc.enabled }}
+            - name: oidc-credentials
+              mountPath: /etc/pelican/oidc/client.id
+              subPath: client.id
+              readOnly: true
+            - name: oidc-credentials
+              mountPath: /etc/pelican/oidc/client.secret
+              subPath: client.secret
+              readOnly: true
+            {{- end }}
+            {{- if .Values.webPasswordSecret }}
+            - name: web-passwd
+              readOnly: true
+              mountPath: /etc/pelican/web-passwd/password
+              subPath: {{ .Values.webPasswordSecretKey | default "password" }}
+            {{- end }}
+            {{- if .Values.xrootd.extraConfig }}
+            - name: xrootd-config
+              mountPath: /etc/pelican/xrootd.conf
+              subPath: xrootd.conf
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+        {{- if .Values.cvmfsRedirector.enabled }}
+        # ---- CVMFS port redirector sidecar ----
+        - name: cvmfs-redirector
+          image: "{{ .Values.cvmfsRedirector.image.repository }}:{{ .Values.cvmfsRedirector.image.tag }}"
+          imagePullPolicy: Always
+          ports:
+            - name: pelican-cvmfs
+              containerPort: 8000
+          {{- with .Values.cvmfsRedirector.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
+        # ---- Logrotate sidecar ----
+        - name: logrotate
+          image: "{{ .Values.logrotateImage.repository }}:{{ .Values.logrotateImage.tag }}"
+          {{- with .Values.resources.logrotate }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: logging-volume
+              mountPath: /var/log/pelican
+            - name: log-rotate-config
+              mountPath: /etc/logrotate.d/
+
+      volumes:
+        # Placeholder so /usr/share/pelican/config.d exists (required by ConfigLocations)
+        - name: config-dir-placeholder
+          emptyDir: {}
+
+        # TLS certificate (from cert-manager or existing Secret)
+        - name: tls-cert
+          secret:
+            secretName: {{ include "pelican-cache.tlsSecretName" . }}
+            items:
+              - key: tls.crt
+                path: tls.crt
+                mode: 0644
+              - key: tls.key
+                path: tls.key
+                mode: 0600
+
+        # Base Pelican configuration (paths, ports, ConfigLocations)
+        - name: default-config
+          configMap:
+            name: {{ include "pelican-cache.fullname" . }}-default-config
+            items:
+              - key: pelican.yaml
+                path: pelican.yaml
+                mode: 0644
+
+        # Instance-specific Pelican configuration
+        - name: instance-config
+          configMap:
+            name: {{ include "pelican-cache.fullname" . }}-instance-config
+
+        # Logrotate configuration
+        - name: log-rotate-config
+          configMap:
+            name: {{ include "pelican-cache.fullname" . }}-logrotate
+
+        # Cache data volume (PVC or hostPath)
+        {{- if eq .Values.cache.storageType "pvc" }}
+        - name: cache-data
+          persistentVolumeClaim:
+            claimName: {{ include "pelican-cache.fullname" . }}-cache-data
+        {{- else }}
+        - name: cache-data
+          hostPath:
+            path: {{ required "cache.hostPath is required when cache.storageType is hostPath" .Values.cache.hostPath }}
+            type: Directory
+        {{- end }}
+
+        # Logging volume
+        - name: logging-volume
+          persistentVolumeClaim:
+            claimName: {{ include "pelican-cache.fullname" . }}-logging
+
+        # Namespace / issuer key
+        {{- if eq .Values.namespaceKey.type "existingSecret" }}
+        - name: namespace-key
+          secret:
+            secretName: {{ required "namespaceKey.existingSecret is required when type is existingSecret" .Values.namespaceKey.existingSecret }}
+            items:
+              - key: {{ .Values.namespaceKey.secretKey }}
+                path: {{ .Values.namespaceKey.secretKey }}
+                mode: 0600
+        {{- else }}
+        - name: namespace-key
+          persistentVolumeClaim:
+            claimName: {{ include "pelican-cache.fullname" . }}-namespace-key
+        {{- end }}
+
+        {{- if .Values.lotman.enabled }}
+        # Lotman persistent data
+        - name: lotman-data
+          persistentVolumeClaim:
+            claimName: {{ include "pelican-cache.fullname" . }}-lotman
+        {{- end }}
+
+        {{- if .Values.oidc.enabled }}
+        # OIDC client credentials
+        - name: oidc-credentials
+          secret:
+            secretName: {{ required "oidc.existingSecret is required when oidc.enabled is true" .Values.oidc.existingSecret }}
+            items:
+              - key: client.id
+                path: client.id
+              - key: client.secret
+                path: client.secret
+        {{- end }}
+
+        {{- if .Values.webPasswordSecret }}
+        # Web UI password
+        - name: web-passwd
+          secret:
+            secretName: {{ .Values.webPasswordSecret }}
+            items:
+              - key: {{ .Values.webPasswordSecretKey | default "password" }}
+                path: {{ .Values.webPasswordSecretKey | default "password" }}
+                mode: 0600
+        {{- end }}
+
+        {{- if .Values.xrootd.extraConfig }}
+        # Custom XRootD configuration
+        - name: xrootd-config
+          configMap:
+            name: {{ include "pelican-cache.fullname" . }}-xrootd
+            items:
+              - key: xrootd.conf
+                path: xrootd.conf
+                mode: 0644
+        {{- end }}
+
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}

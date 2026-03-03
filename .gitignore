@@ -1,0 +1,22 @@
+# Reference files (local context only)
+reference/
+
+# Helm
+*.tgz
+charts/
+
+# Editor / OS
+*.swp
+*.bak
+*.tmp
+*~
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Test artifacts
+test.yaml

@@ -1,0 +1,86 @@
+# CI values mirroring the itb-osdf-pelican-cache deployment from tiger-osg-config.
+# Secrets must be created separately before installing the chart.
+
+serverHostname: "itb-osdf-pelican-cache.osdf-dev.chtc.io"
+
+federation:
+  discoveryUrl: "https://discovery.osdf-dev.chtc.io"
+  label: osdf
+
+image:
+  repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
+  tag: "v7.23.0"
+
+cvmfsRedirector:
+  enabled: false
+
+cache:
+  storageType: pvc
+  storageClassName: 3x-replica-hdd-raddus
+  pvcSize: 100Gi
+  concurrency: 40
+
+namespaceKey:
+  type: existingSecret
+  existingSecret: itb-osdf-pelican-cache-issuer-keys
+  secretKey: issuer.pem
+
+certificate:
+  enabled: true
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - itb-osdf-pelican-cache.osdf-dev.chtc.io
+
+service:
+  type: LoadBalancer
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: itb-osdf-pelican-cache.osdf-dev.chtc.io
+    metallb.universe.tf/address-pool: tiger-vlan5
+
+resources:
+  cache:
+    requests:
+      cpu: "8"
+      memory: "16Gi"
+
+logging:
+  level: "debug"
+  storageClassName: 3x-replica-block
+  pvcSize: 10Gi
+  cache:
+    Scitokens: debug
+    Pss: debug
+    Http: debug
+    Ofs: debug
+    Pfc: debug
+
+xrootd:
+  sitename: ITB-OSDF-PELICAN-CACHE
+
+nodeSelector:
+  datacenter: wid-vlan5
+
+podSecurityContext:
+  fsGroup: 10940
+  fsGroupChangePolicy: OnRootMismatch
+
+securityContext:
+  capabilities:
+    add: ["SYS_PTRACE"]
+
+webPasswordSecret: itb-pelican-server-web-passwd
+webPasswordSecretKey: server-web-passwd
+
+# Settings not directly parameterized by the chart; merged via extraPelicanConfig.
+extraPelicanConfig:
+  Server:
+    DropPrivileges: false
+    StartupTimeout: "20s"
+  Xrootd:
+    ConfigUpdateFailureTimeout: "20s"
+    AuthRefreshInterval: "1m"
+  Cache:
+    SelfTest: false
+    ConcurrencyDegradedThreshold: 90

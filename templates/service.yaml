@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pelican-cache.fullname" . }}
+  labels:
+    {{- include "pelican-cache.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  {{- if and (eq .Values.service.type "LoadBalancer") .Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.service.loadBalancerIP | quote }}
+  {{- end }}
+  {{- if eq .Values.service.type "LoadBalancer" }}
+  externalTrafficPolicy: {{ .Values.service.externalTrafficPolicy }}
+  {{- end }}
+  selector:
+    {{- include "pelican-cache.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: pelican
+      protocol: TCP
+      port: 8443
+      targetPort: pelican
+    {{- if .Values.cvmfsRedirector.enabled }}
+    - name: pelican-cvmfs
+      protocol: TCP
+      port: 8000
+      targetPort: pelican-cvmfs
+    {{- end }}
+    - name: pelican-webui
+      protocol: TCP
+      port: 443
+      targetPort: pelican-webui

@@ -1,0 +1,17 @@
+{{- if .Values.lotman.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "pelican-cache.fullname" . }}-lotman
+  labels:
+    {{- include "pelican-cache.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.lotman.storageClassName }}
+  storageClassName: {{ .Values.lotman.storageClassName | quote }}
+  {{- end }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.lotman.pvcSize }}
+{{- end }}
