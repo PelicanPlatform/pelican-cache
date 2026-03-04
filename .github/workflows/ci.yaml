@@ -36,6 +36,8 @@ jobs:
             args: "-f ci/uw-osdf-cache-values.yaml"
           - name: itb-osdf-pelican-cache
             args: "-f ci/itb-osdf-pelican-cache-values.yaml"
+          - name: houston2-i2-pelican-cache
+            args: "-f ci/houston2-i2-pelican-cache-values.yaml"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

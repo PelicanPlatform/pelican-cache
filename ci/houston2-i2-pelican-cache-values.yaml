@@ -1,0 +1,153 @@
+# CI values mirroring the houston2-i2-pelican-cache Nautilus deployment
+# from tiger-osg-config. Secrets must be created separately before install.
+
+serverHostname: "dtn-pas.hous.nrp.internet2.edu"
+
+federation:
+  discoveryUrl: "https://osg-htc.org"
+  label: osdf
+
+image:
+  repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
+  tag: "v7.22.0"
+  pullPolicy: IfNotPresent
+
+cvmfsRedirector:
+  enabled: false
+
+# The real deployment uses an existing PVC (pvc-dtn-pas.hous.net.internet2.edu).
+cache:
+  storageType: existingPVC
+  existingPVC: pvc-dtn-pas.hous.net.internet2.edu
+  concurrency: 160
+
+namespaceKey:
+  type: existingSecret
+  existingSecret: houston2-i2-pelican-pelican-cache-key
+  secretKey: issuer.pem
+
+# The real deployment creates its own Certificate (Issuer, not ClusterIssuer)
+# and uses a differently named secret ("certs").
+# We use tls.existingSecret to reference that pre-existing secret.
+certificate:
+  enabled: false
+
+tls:
+  existingSecret: houston2-i2-certs
+
+# hostNetwork: true binds directly to the node's network and disables the Service.
+hostNetwork: true
+
+networkPolicy:
+  enabled: false
+
+resources:
+  cache:
+    requests:
+      cpu: "16000m"
+      memory: "210Gi"
+    limits:
+      cpu: "16000m"
+      memory: "210Gi"
+  logrotate:
+    requests:
+      cpu: "1"
+      memory: "500M"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+# Logs go to the cache volume (/cache/pelican/), no separate logging PVC.
+logging:
+  enabled: false
+  level: INFO
+  cache:
+    Pss: warn
+    Scitokens: warn
+  origin:
+    Scitokens: warn
+
+server:
+  webPort: 8444
+
+oidc:
+  enabled: true
+  existingSecret: nrp-oidc-client-secret
+
+adminUsers: "http://cilogon.org/serverE/users/133679 http://cilogon.org/serverA/users/10832 http://cilogon.org/serverA/users/21441 http://cilogon.org/serverA/users/46022246 http://cilogon.org/serverA/users/9265706 http://cilogon.org/serverE/users/57152 http://cilogon.org/serverE/users/130835 http://cilogon.org/serverE/users/245993 http://cilogon.org/serverB/users/51444962"
+
+webPasswordSecret: osdf-web-pass-nrp
+webPasswordSecretKey: server-web-passwd
+
+xrootd:
+  sitename: HOUSTON2_INTERNET2_OSDF_CACHE
+  # The real deployment uses an external ConfigMap (xrootdtrt-cfg) for xrootd config.
+  # xrootd.extraConfig could inline it here if the content were known.
+  extraConfig: ""
+
+nodeSelector:
+  kubernetes.io/hostname: dtn-pas.hous.net.internet2.edu
+
+tolerations:
+  - key: "nautilus.io/reservation"
+    operator: "Equal"
+    value: "osdf"
+    effect: "NoSchedule"
+
+securityContext:
+  capabilities:
+    add: ["SYS_PTRACE"]
+
+extraEnv:
+  - name: XRD_CURLDISABLEX509
+    value: "1"
+
+# Convert remaining env-var config that doesn't have first-class values.yaml
+# knobs into proper YAML config.
+extraPelicanConfig:
+  Server:
+    EnableUI: true
+  IssuerKey: "/cache/privpelican/issuer.pem"
+  Logging:
+    LogLocation: "/cache/pelican/pelican.log"
+  Shoveler:
+    Enable: true
+    Topic: ""
+    AmqpTokenLocation: "/etc/pelican/shoveler/token"
+    Url: "amqps://xrd-rabbitmq.gracc-prod.chtc.io/xrd-mon"
+    AmqpExchange: "shoveled-xrd"
+  Federation:
+    RegistryUrl: ""
+
+# Volumes for shoveler token, cache authfile, and xrootd config that the chart
+# does not natively support — use extraVolumes/extraVolumeMounts.
+extraVolumes:
+  - name: token-shoveler
+    secret:
+      secretName: stashcache-shoveler-token
+      defaultMode: 0644
+  - name: cache-authfile
+    configMap:
+      name: houston2-i2-cache-authfile
+      items:
+        - key: cache-authfile
+          path: authfile
+          mode: 0664
+  - name: xrootdtrt-cfg
+    configMap:
+      name: xrootdtrt-cfg
+      items:
+        - key: xrootdtrt.cfg
+          path: xrootdtrt.cfg
+          mode: 0664
+
+extraVolumeMounts:
+  - name: token-shoveler
+    mountPath: /etc/pelican/shoveler
+    readOnly: true
+  - name: cache-authfile
+    mountPath: /etc/pelican/xrootd/authfile
+    subPath: authfile
+  - name: xrootdtrt-cfg
+    mountPath: /etc/pelican/xrootdap
+    readOnly: true
