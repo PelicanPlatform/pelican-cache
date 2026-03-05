@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "pelican-cache.fullname" . }}-instance-config
-  labels:
-    {{- include "pelican-cache.labels" . | nindent 4 }}
-data:
-  50-instance.yaml: |
-{{- include "pelican-cache.instanceConfig" . | nindent 4 }}

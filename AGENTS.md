@@ -45,8 +45,7 @@ pelican-cache/
     ├── service.yaml                     # LoadBalancer Service
     ├── networkpolicy.yaml               # NetworkPolicy (conditional)
     ├── certificate.yaml                 # cert-manager Certificate (conditional)
-    ├── configmap-default.yaml           # Base pelican.yaml (paths, ports, ConfigLocations)
-    ├── configmap-instance.yaml          # Instance config from values (50-instance.yaml)
+    ├── configmap-pelican.yaml           # Base + instance Pelican config (pelican.yaml + 50-instance.yaml)
     ├── configmap-logrotate.yaml         # Logrotate configuration
     ├── configmap-xrootd.yaml            # Custom xrootd.conf (conditional)
     ├── pvc-cache-data.yaml              # Cache data PVC (conditional on storageType=pvc)
@@ -58,7 +57,7 @@ pelican-cache/
 
 ## Key Design Decisions
 
-1. **Pelican config layering**: Two ConfigMaps → `default-config` (infrastructure paths) and `instance-config` (user settings). Pelican's `ConfigLocations` directive merges them in order. The `config-dir-placeholder` emptyDir exists solely because Pelican requires all `ConfigLocations` directories to exist at startup, even if empty (the `/usr/share/pelican/config.d` location is used by the OSDF overlay layer in the Kustomize deployment but is kept as a placeholder here for compatibility).
+1. **Pelican config layering**: One ConfigMap (`pelican-config`) contains both `pelican.yaml` (infrastructure paths) and `50-instance.yaml` (user settings). Pelican's `ConfigLocations` directive merges the files in order. The `config-dir-placeholder` emptyDir exists solely because Pelican requires all `ConfigLocations` directories to exist at startup, even if empty (the `/usr/share/pelican/config.d` location is used by the OSDF overlay layer in the Kustomize deployment but is kept as a placeholder here for compatibility).
 
 2. **Secrets are never chart-managed**: The chart only _references_ pre-existing Secrets. This is intentional — issuer keys, OIDC credentials, TLS certs, and passwords are sensitive and should be managed via SealedSecrets, External Secrets Operator, or manual creation.
 

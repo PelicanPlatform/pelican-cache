@@ -14,8 +14,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/default-config: {{ include (print $.Template.BasePath "/configmap-default.yaml") . | sha256sum }}
-        checksum/instance-config: {{ include (print $.Template.BasePath "/configmap-instance.yaml") . | sha256sum }}
+        checksum/pelican-config: {{ include (print $.Template.BasePath "/configmap-pelican.yaml") . | sha256sum }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -71,8 +70,9 @@ spec:
             - name: default-config
               mountPath: /etc/pelican/pelican.yaml
               subPath: pelican.yaml
-            - name: instance-config
-              mountPath: /etc/pelican/config.d
+            - name: default-config
+              mountPath: /etc/pelican/config.d/50-instance.yaml
+              subPath: 50-instance.yaml
             - name: cache-data
               mountPath: /cache
             - name: logging-volume
@@ -161,19 +161,17 @@ spec:
                 path: tls.key
                 mode: 0600
 
-        # Base Pelican configuration (paths, ports, ConfigLocations)
+        # Pelican configuration (base + instance settings)
         - name: default-config
           configMap:
-            name: {{ include "pelican-cache.fullname" . }}-default-config
+            name: {{ include "pelican-cache.fullname" . }}-pelican-config
             items:
               - key: pelican.yaml
                 path: pelican.yaml
                 mode: 0644
-
-        # Instance-specific Pelican configuration
-        - name: instance-config
-          configMap:
-            name: {{ include "pelican-cache.fullname" . }}-instance-config
+              - key: 50-instance.yaml
+                path: 50-instance.yaml
+                mode: 0644
 
         # Logrotate configuration
         - name: log-rotate-config
