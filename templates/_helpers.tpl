@@ -64,17 +64,6 @@ TLS Secret name - either from cert-manager Certificate or an existing Secret
 {{- end }}
 
 {{/*
-IssuerKey path based on namespaceKey.type
-*/}}
-{{- define "pelican-cache.issuerKeyPath" -}}
-{{- if eq .Values.namespaceKey.type "existingSecret" -}}
-/etc/pelican/issuer-keys/{{ .Values.namespaceKey.secretKey }}
-{{- else -}}
-/etc/pelican/jwks/issuer.jwk
-{{- end -}}
-{{- end }}
-
-{{/*
 Generate the Pelican instance configuration (50-instance.yaml content).
 This is the user-configurable layer that Pelican loads from /etc/pelican/config.d/.
 */}}

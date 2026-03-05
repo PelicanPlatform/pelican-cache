@@ -39,7 +39,6 @@ pelican-cache/
     │                                    #   - pelican-cache.fullname
     │                                    #   - pelican-cache.labels / selectorLabels
     │                                    #   - pelican-cache.tlsSecretName
-    │                                    #   - pelican-cache.issuerKeyPath
     │                                    #   - pelican-cache.instanceConfig (generates 50-instance.yaml)
     ├── deployment.yaml                  # Deployment: 2-3 containers, conditional volumes
     ├── service.yaml                     # LoadBalancer Service

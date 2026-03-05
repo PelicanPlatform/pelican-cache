@@ -12,8 +12,6 @@ data:
       - "/usr/share/pelican/config.d"
       - "/etc/pelican/config.d"
 
-    IssuerKey: {{ include "pelican-cache.issuerKeyPath" . | quote }}
-
     Cache:
       StorageLocation: /cache
       Port: 8443

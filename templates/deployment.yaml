@@ -77,11 +77,11 @@ spec:
             {{- if eq .Values.namespaceKey.type "existingSecret" }}
             - name: namespace-key
               readOnly: true
-              mountPath: /etc/pelican/issuer-keys/{{ .Values.namespaceKey.secretKey }}
+              mountPath: /etc/pelican/issuer-keys/issuer.pem
               subPath: {{ .Values.namespaceKey.secretKey }}
             {{- else }}
             - name: namespace-key
-              mountPath: /etc/pelican/jwks
+              mountPath: /etc/pelican/issuer-keys
             {{- end }}
             - name: tls-cert
 {{/* We cannot mount the host cert secret at /etc/pelican/certificates
