@@ -1,7 +1,12 @@
+{{- $pvcName := printf "%s-logging" (include "pelican-cache.fullname" .) -}}
+{{- $shouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $pvcName) | trim) "true" -}}
+{{- if $shouldRender }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "pelican-cache.fullname" . }}-logging
+  name: {{ $pvcName }}
+  annotations:
+    helm.sh/resource-policy: keep
   labels:
     {{- include "pelican-cache.labels" . | nindent 4 }}
 spec:
@@ -13,3 +18,4 @@ spec:
   resources:
     requests:
       storage: {{ .Values.logging.pvcSize }}
+{{- end }}

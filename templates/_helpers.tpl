@@ -142,3 +142,32 @@ XrootD.ConfigFile: /etc/pelican/xrootd.conf
 {{ toYaml .Values.extraPelicanConfig }}
 {{- end }}
 {{- end }}
+
+{{/*
+Return true when a PVC should be rendered by this chart.
+
+Behavior:
+- If the PVC does not exist yet, render it.
+- If the PVC already exists and is managed by this same Helm release, render it
+  so upgrades can continue to manage metadata.
+- Otherwise, skip rendering to avoid creation/adoption conflicts.
+*/}}
+{{- define "pelican-cache.shouldRenderPvc" -}}
+{{- $root := .root -}}
+{{- $pvcName := .pvcName -}}
+{{- $existing := lookup "v1" "PersistentVolumeClaim" $root.Release.Namespace $pvcName -}}
+{{- if not $existing -}}
+true
+{{- else -}}
+{{- $annotations := default (dict) $existing.metadata.annotations -}}
+{{- $labels := default (dict) $existing.metadata.labels -}}
+{{- if and
+  (eq (index $annotations "meta.helm.sh/release-name") $root.Release.Name)
+  (eq (index $annotations "meta.helm.sh/release-namespace") $root.Release.Namespace)
+  (eq (index $labels "app.kubernetes.io/managed-by") "Helm") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+{{- end }}

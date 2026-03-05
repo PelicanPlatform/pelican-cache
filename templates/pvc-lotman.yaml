@@ -1,8 +1,12 @@
-{{- if .Values.lotman.enabled }}
+{{- $pvcName := printf "%s-lotman" (include "pelican-cache.fullname" .) -}}
+{{- $shouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $pvcName) | trim) "true" -}}
+{{- if and .Values.lotman.enabled $shouldRender }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "pelican-cache.fullname" . }}-lotman
+  name: {{ $pvcName }}
+  annotations:
+    helm.sh/resource-policy: keep
   labels:
     {{- include "pelican-cache.labels" . | nindent 4 }}
 spec:

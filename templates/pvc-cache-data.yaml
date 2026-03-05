@@ -1,8 +1,12 @@
-{{- if eq .Values.cache.storageType "pvc" }}
+{{- $pvcName := printf "%s-data" (include "pelican-cache.fullname" .) -}}
+{{- $shouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $pvcName) | trim) "true" -}}
+{{- if and (eq .Values.cache.storageType "pvc") $shouldRender }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "pelican-cache.fullname" . }}-data
+  name: {{ $pvcName }}
+  annotations:
+    helm.sh/resource-policy: keep
   labels:
     {{- include "pelican-cache.labels" . | nindent 4 }}
 spec:

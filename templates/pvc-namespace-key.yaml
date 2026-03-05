@@ -1,8 +1,12 @@
-{{- if eq .Values.namespaceKey.type "pvc" }}
+{{- $pvcName := printf "%s-namespace-key" (include "pelican-cache.fullname" .) -}}
+{{- $shouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $pvcName) | trim) "true" -}}
+{{- if and (eq .Values.namespaceKey.type "pvc") $shouldRender }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "pelican-cache.fullname" . }}-namespace-key
+  name: {{ $pvcName }}
+  annotations:
+    helm.sh/resource-policy: keep
   labels:
     {{- include "pelican-cache.labels" . | nindent 4 }}
 spec:
