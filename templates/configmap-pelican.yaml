@@ -5,6 +5,7 @@ metadata:
   labels:
     {{- include "pelican-cache.labels" . | nindent 4 }}
 data:
+{{/*See note in deployment.yaml for why we have to change TlsCertificate and TlsKey*/}}
   pelican.yaml: |
     ---
     ConfigLocations:
@@ -15,7 +16,6 @@ data:
 
     Cache:
       StorageLocation: /cache
-      DataLocation: UNUSED
       Port: 8443
 
     Server:

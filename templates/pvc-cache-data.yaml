@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "pelican-cache.fullname" . }}-cache-data
+  name: {{ include "pelican-cache.fullname" . }}-data
   labels:
     {{- include "pelican-cache.labels" . | nindent 4 }}
 spec:

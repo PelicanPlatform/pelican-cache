@@ -57,7 +57,7 @@ pelican-cache/
 
 ## Key Design Decisions
 
-1. **Pelican config layering**: One ConfigMap (`pelican-config`) contains both `pelican.yaml` (infrastructure paths) and `50-instance.yaml` (user settings). Pelican's `ConfigLocations` directive merges the files in order. The `config-dir-placeholder` emptyDir exists solely because Pelican requires all `ConfigLocations` directories to exist at startup, even if empty (the `/usr/share/pelican/config.d` location is used by the OSDF overlay layer in the Kustomize deployment but is kept as a placeholder here for compatibility).
+1. **Pelican config layering**: One ConfigMap (`pelican-config`) contains both `pelican.yaml` (infrastructure paths) and `50-instance.yaml` (user settings). Pelican's `ConfigLocations` directive merges the files in order.
 
 2. **Secrets are never chart-managed**: The chart only _references_ pre-existing Secrets. This is intentional — issuer keys, OIDC credentials, TLS certs, and passwords are sensitive and should be managed via SealedSecrets, External Secrets Operator, or manual creation.
 
@@ -77,7 +77,7 @@ pelican-cache/
 - **IssuerKey** is a JWK used to sign tokens. When using a PVC, Pelican auto-generates it on first start. When using an existing Secret, the operator provides a pre-generated key.
 - **Lotman** = lot-based storage management (experimental). Manages disk quotas per "lot."
 - **CVMFS port redirector** = a sidecar that redirects legacy CVMFS clients (port 8000) to the Pelican cache.
-- **Cache.StorageLocation** vs **Cache.DataLocation**: In Pelican 7.12+, `StorageLocation` is preferred. `DataLocation` is kept as `UNUSED` for backward compatibility with the config schema.
+- **Cache.StorageLocation**: In Pelican 7.12+, `StorageLocation` is the preferred cache path setting.
 - **`Cache.HighWaterMark` / `LowWaterMark`**: XRootD's cache eviction thresholds. When total disk usage crosses the high watermark, files are evicted until it drops below the low watermark.
 - **`Files*Size` parameters**: Fine-grained diskusage tracking specific to the mount where cache data lives. `FilesMaxSize` must be lower than the low water mark.
 - **`Cache.Concurrency`**: Guidance is 10× the number of CPU cores.

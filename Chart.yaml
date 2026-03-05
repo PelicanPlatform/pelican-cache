@@ -3,7 +3,7 @@ name: pelican-cache
 description: A Helm chart for deploying a Pelican Platform cache in the OSDF
 type: application
 version: 0.1.0
-appVersion: "7.23.0"
+appVersion: "v7.23.0"
 home: https://pelicanplatform.org
 sources:
   - https://github.com/PelicanPlatform/pelican

@@ -19,7 +19,7 @@ federation:
 # -- Cache container image
 image:
   repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
-  tag: "v7.23.0"
+  tag: ""
   pullPolicy: Always
 
 # -- Logrotate sidecar image
@@ -148,8 +148,9 @@ oidc:
   # -- Name of an existing Secret with keys "client.id" and "client.secret"
   existingSecret: ""
 
-# -- Space-separated list of CILogon admin user identities for the web UI
-adminUsers: ""
+# -- List of CILogon admin user identities for the web UI
+adminUsers: []
+#   - "http://cilogon.org/serverA/users/12345"
 
 # -- Name of an existing Secret containing the web UI password file
 webPasswordSecret: ""

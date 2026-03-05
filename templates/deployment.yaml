@@ -41,7 +41,7 @@ spec:
       containers:
         # ---- Main Pelican cache container ----
         - name: pelican-cache
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           args: []
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with .Values.resources.cache }}
@@ -64,16 +64,13 @@ spec:
               containerPort: 443
               protocol: TCP
           volumeMounts:
-            # Pelican requires ConfigLocations directories to exist
-            - name: config-dir-placeholder
-              mountPath: /usr/share/pelican/config.d
             - name: default-config
               mountPath: /etc/pelican/pelican.yaml
               subPath: pelican.yaml
             - name: default-config
               mountPath: /etc/pelican/config.d/50-instance.yaml
               subPath: 50-instance.yaml
-            - name: cache-data
+            - name: data
               mountPath: /cache
             - name: logging-volume
               mountPath: /var/log/pelican
@@ -87,6 +84,10 @@ spec:
               mountPath: /etc/pelican/jwks
             {{- end }}
             - name: tls-cert
+{{/* We cannot mount the host cert secret at /etc/pelican/certificates
+because that would make that directory read-only and Pelican needs to write
+its own CA there.  So we use a different directory here and in the Pelican config.
+*/}}
               mountPath: /etc/pelican/cert-orig
             {{- if .Values.lotman.enabled }}
             - name: lotman-data
@@ -145,10 +146,6 @@ spec:
               mountPath: /etc/logrotate.d/
 
       volumes:
-        # Placeholder so /usr/share/pelican/config.d exists (required by ConfigLocations)
-        - name: config-dir-placeholder
-          emptyDir: {}
-
         # TLS certificate (from cert-manager or existing Secret)
         - name: tls-cert
           secret:
@@ -180,11 +177,11 @@ spec:
 
         # Cache data volume (PVC or hostPath)
         {{- if eq .Values.cache.storageType "pvc" }}
-        - name: cache-data
+        - name: data
           persistentVolumeClaim:
-            claimName: {{ include "pelican-cache.fullname" . }}-cache-data
+            claimName: {{ include "pelican-cache.fullname" . }}-data
         {{- else }}
-        - name: cache-data
+        - name: data
           hostPath:
             path: {{ required "cache.hostPath is required when cache.storageType is hostPath" .Values.cache.hostPath }}
             type: Directory

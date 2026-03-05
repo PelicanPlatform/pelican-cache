@@ -35,6 +35,9 @@ Common labels
 {{- define "pelican-cache.labels" -}}
 helm.sh/chart: {{ include "pelican-cache.chart" . }}
 {{ include "pelican-cache.selectorLabels" . }}
+{{- if .Values.federation.label }}
+federation: {{ .Values.federation.label }}
+{{- end }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -47,10 +50,6 @@ Selector labels
 {{- define "pelican-cache.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "pelican-cache.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-app: pelican-cache
-{{- if .Values.federation.label }}
-federation: {{ .Values.federation.label }}
-{{- end }}
 {{- end }}
 
 {{/*
@@ -87,39 +86,39 @@ Federation:
 Server:
   Hostname: {{ required "serverHostname is required" .Values.serverHostname | quote }}
 {{- if .Values.adminUsers }}
-  UIAdminUsers: {{ .Values.adminUsers | quote }}
+  UIAdminUsers:
+    {{- toYaml .Values.adminUsers | nindent 4 }}
 {{- end }}
 {{- if .Values.webPasswordSecret }}
   UIPasswordFile: /etc/pelican/web-passwd/password
 {{- end }}
 
-Cache:
 {{- if .Values.cache.blocksToPrefetch }}
-  BlocksToPrefetch: {{ .Values.cache.blocksToPrefetch }}
+Cache.BlocksToPrefetch: {{ .Values.cache.blocksToPrefetch }}
 {{- end }}
 {{- if .Values.oidc.enabled }}
-  EnableOIDC: true
+Cache.EnableOIDC: true
 {{- end }}
 {{- if .Values.lotman.enabled }}
-  EnableLotman: true
+Cache.EnableLotman: true
 {{- end }}
 {{- if .Values.cache.highWaterMark }}
-  HighWaterMark: {{ .Values.cache.highWaterMark }}
+Cache.HighWaterMark: {{ .Values.cache.highWaterMark }}
 {{- end }}
 {{- if .Values.cache.lowWaterMark }}
-  LowWaterMark: {{ .Values.cache.lowWaterMark }}
+Cache.LowWaterMark: {{ .Values.cache.lowWaterMark }}
 {{- end }}
 {{- if .Values.cache.filesMaxSize }}
-  FilesMaxSize: {{ .Values.cache.filesMaxSize }}
+Cache.FilesMaxSize: {{ .Values.cache.filesMaxSize }}
 {{- end }}
 {{- if .Values.cache.filesNominalSize }}
-  FilesNominalSize: {{ .Values.cache.filesNominalSize }}
+Cache.FilesNominalSize: {{ .Values.cache.filesNominalSize }}
 {{- end }}
 {{- if .Values.cache.filesBaseSize }}
-  FilesBaseSize: {{ .Values.cache.filesBaseSize }}
+Cache.FilesBaseSize: {{ .Values.cache.filesBaseSize }}
 {{- end }}
 {{- if .Values.cache.concurrency }}
-  Concurrency: {{ .Values.cache.concurrency }}
+Cache.Concurrency: {{ .Values.cache.concurrency }}
 {{- end }}
 
 {{- if .Values.oidc.enabled }}
@@ -142,15 +141,11 @@ Lotman:
   LotHome: /var/lib/pelican/lotman
 {{- end }}
 
-{{- if or .Values.xrootd.sitename .Values.xrootd.extraConfig }}
-
-XrootD:
 {{- if .Values.xrootd.sitename }}
-  Sitename: {{ .Values.xrootd.sitename | quote }}
+XrootD.Sitename: {{ .Values.xrootd.sitename | quote }}
 {{- end }}
 {{- if .Values.xrootd.extraConfig }}
-  ConfigFile: /etc/pelican/xrootd.conf
-{{- end }}
+XrootD.ConfigFile: /etc/pelican/xrootd.conf
 {{- end }}
 
 {{- if .Values.extraPelicanConfig }}
