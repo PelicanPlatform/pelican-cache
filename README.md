@@ -27,8 +27,7 @@ This Helm chart collapses these three layers into a single, parameterized chart 
 helm install my-cache ./pelican-cache \
   --set serverHostname=my-cache.example.com \
   --set cache.storageClassName=my-storage-class \
-  --set logging.storageClassName=my-storage-class \
-  --set certificate.dnsNames[0]=my-cache.example.com
+  --set logging.storageClassName=my-storage-class
 ```
 
 ### Installation with a values file
@@ -129,12 +128,14 @@ For details on `Files*Size` parameters, see the [XRootD PFC documentation](https
 
 ### TLS / Certificates
 
+`serverHostname` is always included in the rendered cert-manager `Certificate.spec.dnsNames`; use `certificate.dnsNames` only for additional SANs.
+
 | Parameter | Default | Description |
 |---|---|---|
 | `certificate.enabled` | `true` | Create a cert-manager Certificate |
 | `certificate.issuerRef.name` | `letsencrypt-prod` | Issuer name |
 | `certificate.issuerRef.kind` | `ClusterIssuer` | Issuer kind |
-| `certificate.dnsNames` | `[]` | DNS SANs (should include `serverHostname`) |
+| `certificate.dnsNames` | `[]` | Additional DNS SANs (`serverHostname` is always included) |
 | `tls.existingSecret` | `""` | Use an existing TLS Secret instead of cert-manager |
 
 ### Service
@@ -234,7 +235,7 @@ logging:
 
 certificate:
   dnsNames:
-    - my-cache.osg-htc.org
+    - my-cache-alt.example.org
 ```
 
 ### Production Cache (hostPath, like uw-osdf-cache)
@@ -258,6 +259,7 @@ namespaceKey:
   existingSecret: my-cache-issuer-key
 
 certificate:
+  enabled: true
   dnsNames:
     - osdf-uw-cache.svc.osdf-prod.chtc.io
     - osdf-uw-cache.svc.osg-htc.org

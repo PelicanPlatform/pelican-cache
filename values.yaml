@@ -87,7 +87,7 @@ certificate:
     name: letsencrypt-prod
     # -- Kind: ClusterIssuer or Issuer
     kind: ClusterIssuer
-  # -- DNS Subject Alternative Names for the certificate
+  # -- Additional DNS Subject Alternative Names for the certificate (serverHostname is always included)
   dnsNames: []
 
 # -- Use an existing TLS Secret instead of cert-manager

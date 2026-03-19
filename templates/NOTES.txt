@@ -8,15 +8,7 @@ Pelican Cache {{ .Chart.AppVersion }} has been deployed.
 {{- if .Values.certificate.enabled }}
 
 TLS certificate will be issued by {{ .Values.certificate.issuerRef.kind }}/{{ .Values.certificate.issuerRef.name }}.
-{{- if .Values.certificate.dnsNames }}
-DNS names:
-{{- range .Values.certificate.dnsNames }}
-  - {{ . }}
-{{- end }}
-{{- else }}
-WARNING: certificate.dnsNames is empty - the Certificate will have no SANs.
-Set certificate.dnsNames to the FQDN(s) of your cache.
-{{- end }}
+DNS names: {{ .Values.serverHostname }}{{- range .Values.certificate.dnsNames }}, {{ . }}{{- end }}
 {{- end }}
 
 Check deployment status:
