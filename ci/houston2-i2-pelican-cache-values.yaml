@@ -17,11 +17,12 @@ cvmfsRedirector:
 
 # The real deployment uses an existing PVC (pvc-dtn-pas.hous.net.internet2.edu).
 cache:
-  storageType: existingPVC
-  existingPVC: pvc-dtn-pas.hous.net.internet2.edu
+  type: hostPath
+  hostPath:
+    path: /cache
   concurrency: 160
 
-namespaceKey:
+issuerKey:
   type: existingSecret
   existingSecret: houston2-i2-pelican-pelican-cache-key
   secretKey: issuer.pem
@@ -59,7 +60,7 @@ resources:
 
 # Logs go to the cache volume (/cache/pelican/), no separate logging PVC.
 logging:
-  enabled: false
+  persist: false
   level: INFO
   cache:
     Pss: warn

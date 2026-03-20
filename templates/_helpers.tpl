@@ -212,3 +212,67 @@ match exactly.
 {{- end }}
 {{- end }}
 
+{{/*
+Validate required values and conditional requirements.
+*/}}
+{{- define "pelican-cache.validateRequiredValues" -}}
+{{- $cacheStorageType := .Values.cache.type | default "" }}
+{{- $issuerKeyType := .Values.issuerKey.type | default "" }}
+{{- $loggingPersist := true }}
+{{- if hasKey .Values.logging "persist" }}
+  {{- $loggingPersist = .Values.logging.persist }}
+{{- end }}
+
+{{- if eq $cacheStorageType "pvc" }}
+  {{- if not .Values.cache.pvc.existingClaim }}
+    {{- if eq (trim (default "" .Values.cache.pvc.storageClass)) "" }}
+      {{- fail "cache.pvc.storageClass must be nonempty when cache.type is \"pvc\" and cache.pvc.existingClaim is not set" }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- if eq $cacheStorageType "hostPath" }}
+  {{- if eq (trim (default "" .Values.cache.hostPath.path)) "" }}
+    {{- fail "cache.hostPath.path must be nonempty when cache.type is \"hostPath\"" }}
+  {{- end }}
+{{- end }}
+
+{{- if eq $issuerKeyType "pvc" }}
+  {{- if eq (trim (default "" .Values.issuerKey.pvc.storageClass)) "" }}
+    {{- fail "issuerKey.pvc.storageClass must be nonempty when issuerKey.type is \"pvc\"" }}
+  {{- end }}
+{{- end }}
+
+{{- if eq $issuerKeyType "existingSecret" }}
+  {{- if eq (trim (default "" .Values.issuerKey.existingSecret)) "" }}
+    {{- fail "issuerKey.existingSecret must be nonempty when issuerKey.type is \"existingSecret\"" }}
+  {{- end }}
+{{- end }}
+
+{{- if $loggingPersist }}
+  {{- if not .Values.logging.pvc.existingClaim }}
+    {{- if eq (trim (default "" .Values.logging.pvc.storageClass)) "" }}
+      {{- fail "logging.pvc.storageClass must be nonempty when logging.persist is true and logging.pvc.existingClaim is not set" }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.lotman.enabled }}
+  {{- if not .Values.lotman.pvc.existingClaim }}
+    {{- if eq (trim (default "" .Values.lotman.pvc.storageClass)) "" }}
+      {{- fail "lotman.pvc.storageClass must be nonempty when lotman.enabled is true and lotman.pvc.existingClaim is not set" }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.oidc.enabled }}
+  {{- if eq (trim (default "" .Values.oidc.existingSecret)) "" }}
+    {{- fail "oidc.existingSecret must be nonempty when oidc.enabled is true" }}
+  {{- end }}
+{{- end }}
+
+{{- if eq (trim (default "" .Values.webPasswordSecret)) "" }}
+  {{- fail "webPasswordSecret must be nonempty" }}
+{{- end }}
+{{- end }}
+

@@ -1,6 +1,6 @@
-{{- $pvcName := printf "%s-namespace-key" (include "pelican-cache.fullname" .) -}}
+{{- $pvcName := printf "%s-issuer-key" (include "pelican-cache.fullname" .) -}}
 {{- $shouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $pvcName) | trim) "true" -}}
-{{- if and (eq .Values.namespaceKey.type "pvc") $shouldRender }}
+{{- if and (eq .Values.issuerKey.type "pvc") $shouldRender }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -10,12 +10,12 @@ metadata:
   labels:
     {{- include "pelican-cache.labels" . | nindent 4 }}
 spec:
-  {{- if .Values.namespaceKey.pvc.storageClassName }}
-  storageClassName: {{ .Values.namespaceKey.pvc.storageClassName | quote }}
+  {{- if .Values.issuerKey.pvc.storageClass }}
+  storageClassName: {{ .Values.issuerKey.pvc.storageClass | quote }}
   {{- end }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.namespaceKey.pvc.size }}
+      storage: {{ .Values.issuerKey.pvc.size }}
 {{- end }}

@@ -72,15 +72,21 @@ spec:
               subPath: 50-instance.yaml
             - name: data
               mountPath: /cache
+            {{- $loggingPersist := true }}
+            {{- if hasKey .Values.logging "persist" }}
+            {{- $loggingPersist = .Values.logging.persist }}
+            {{- end }}
+            {{- if $loggingPersist }}
             - name: logging-volume
               mountPath: /var/log/pelican
-            {{- if eq .Values.namespaceKey.type "existingSecret" }}
-            - name: namespace-key
+            {{- end }}
+            {{- if eq .Values.issuerKey.type "existingSecret" }}
+            - name: issuer-key
               readOnly: true
               mountPath: /etc/pelican/issuer-keys/issuer.pem
-              subPath: {{ .Values.namespaceKey.secretKey }}
+              subPath: {{ .Values.issuerKey.secretKey }}
             {{- else }}
-            - name: namespace-key
+            - name: issuer-key
               mountPath: /etc/pelican/issuer-keys
             {{- end }}
             - name: tls-cert
@@ -140,8 +146,14 @@ its own CA there.  So we use a different directory here and in the Pelican confi
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
+            {{- $loggingPersist := true }}
+            {{- if hasKey .Values.logging "persist" }}
+            {{- $loggingPersist = .Values.logging.persist }}
+            {{- end }}
+            {{- if $loggingPersist }}
             - name: logging-volume
               mountPath: /var/log/pelican
+            {{- end }}
             - name: log-rotate-config
               mountPath: /etc/logrotate.d/
 
@@ -176,42 +188,48 @@ its own CA there.  So we use a different directory here and in the Pelican confi
             name: {{ include "pelican-cache.fullname" . }}-logrotate
 
         # Cache data volume (PVC or hostPath)
-        {{- if eq .Values.cache.storageType "pvc" }}
+        {{- if eq .Values.cache.type "pvc" }}
         - name: data
           persistentVolumeClaim:
-            claimName: {{ include "pelican-cache.fullname" . }}-data
+            claimName: {{ if .Values.cache.pvc.existingClaim }}{{ .Values.cache.pvc.existingClaim }}{{ else }}{{ include "pelican-cache.fullname" . }}-data{{ end }}
         {{- else }}
         - name: data
           hostPath:
-            path: {{ required "cache.hostPath is required when cache.storageType is hostPath" .Values.cache.hostPath }}
+            path: {{ required "cache.hostPath.path is required when cache.type is hostPath" .Values.cache.hostPath.path }}
             type: Directory
         {{- end }}
 
+        {{- $loggingPersist := true }}
+        {{- if hasKey .Values.logging "persist" }}
+        {{- $loggingPersist = .Values.logging.persist }}
+        {{- end }}
+        {{- if $loggingPersist }}
         # Logging volume
         - name: logging-volume
           persistentVolumeClaim:
-            claimName: {{ include "pelican-cache.fullname" . }}-logging
+            claimName: {{ if .Values.logging.pvc.existingClaim }}{{ .Values.logging.pvc.existingClaim }}{{ else }}{{ include "pelican-cache.fullname" . }}-logging{{ end }}
+        {{- end }}
 
-        # Namespace / issuer key
-        {{- if eq .Values.namespaceKey.type "existingSecret" }}
-        - name: namespace-key
+        # Issuer key
+        {{- if eq .Values.issuerKey.type "existingSecret" }}
+        - name: issuer-key
           secret:
-            secretName: {{ required "namespaceKey.existingSecret is required when type is existingSecret" .Values.namespaceKey.existingSecret }}
+            secretName: {{ required "issuerKey.existingSecret is required when type is existingSecret" .Values.issuerKey.existingSecret }}
             items:
-              - key: {{ .Values.namespaceKey.secretKey }}
-                path: {{ .Values.namespaceKey.secretKey }}
+              - key: {{ .Values.issuerKey.secretKey }}
+                path: {{ .Values.issuerKey.secretKey }}
                 mode: 0600
         {{- else }}
-        - name: namespace-key
+        - name: issuer-key
           persistentVolumeClaim:
-            claimName: {{ include "pelican-cache.fullname" . }}-namespace-key
+            claimName: {{ include "pelican-cache.fullname" . }}-issuer-key
         {{- end }}
 
         {{- if .Values.lotman.enabled }}
         # Lotman persistent data
         - name: lotman-data
           persistentVolumeClaim:
-            claimName: {{ include "pelican-cache.fullname" . }}-lotman
+            claimName: {{ if .Values.lotman.pvc.existingClaim }}{{ .Values.lotman.pvc.existingClaim }}{{ else }}{{ include "pelican-cache.fullname" . }}-lotman{{ end }}
         {{- end }}
 
         {{- if .Values.oidc.enabled }}

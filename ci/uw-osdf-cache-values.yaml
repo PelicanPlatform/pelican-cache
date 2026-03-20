@@ -15,8 +15,9 @@ cvmfsRedirector:
   enabled: false
 
 cache:
-  storageType: hostPath
-  hostPath: /srv/pelican-cache/
+  type: hostPath
+  hostPath:
+    path: /srv/pelican-cache/
   blocksToPrefetch: 10
   concurrency: 240
   highWaterMark: 27000g
@@ -25,7 +26,7 @@ cache:
   filesNominalSize: 17000g
   filesBaseSize: 16500g
 
-namespaceKey:
+issuerKey:
   type: existingSecret
   existingSecret: uw-osdf-cache-issuer-key
   secretKey: issuer.pem
@@ -61,8 +62,9 @@ resources:
 
 logging:
   level: "debug"
-  storageClassName: 3x-replica-hdd-raddus
-  pvcSize: 50Gi
+  pvc:
+    storageClass: 3x-replica-hdd-raddus
+    size: 50Gi
   cache:
     Pss: "debug"
     Pfc: "debug"
@@ -70,8 +72,9 @@ logging:
 
 lotman:
   enabled: true
-  storageClassName: 3x-replica-hdd-raddus
-  pvcSize: 10Gi
+  pvc:
+    storageClass: 3x-replica-hdd-raddus
+    size: 10Gi
 
 oidc:
   enabled: true

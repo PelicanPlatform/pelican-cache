@@ -15,12 +15,13 @@ cvmfsRedirector:
   enabled: false
 
 cache:
-  storageType: pvc
-  storageClassName: 3x-replica-hdd-raddus
-  pvcSize: 100Gi
+  type: pvc
+  pvc:
+    storageClass: 3x-replica-hdd-raddus
+    size: 100Gi
   concurrency: 40
 
-namespaceKey:
+issuerKey:
   type: existingSecret
   existingSecret: itb-osdf-pelican-cache-issuer-keys
   secretKey: issuer.pem
@@ -47,8 +48,9 @@ resources:
 
 logging:
   level: "debug"
-  storageClassName: 3x-replica-block
-  pvcSize: 10Gi
+  pvc:
+    storageClass: 3x-replica-block
+    size: 10Gi
   cache:
     Scitokens: debug
     Pss: debug
