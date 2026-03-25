@@ -2,6 +2,7 @@
 # Secrets must be created separately before installing the chart.
 
 serverHostname: "osdf-uw-cache.svc.osg-htc.org"
+sitename: CHTC_PELICAN_CACHE
 
 federation:
   discoveryUrl: "https://osg-htc.org"
@@ -95,7 +96,6 @@ webPasswordSecret: osdf-prod-pelican-webserver-passwd
 webPasswordSecretKey: osdf-pelican-webserver-passwd
 
 xrootd:
-  sitename: CHTC_PELICAN_CACHE
   extraConfig: |
     # Set max threads
     xrd.sched maxt 20000

@@ -2,6 +2,7 @@
 # Secrets must be created separately before installing the chart.
 
 serverHostname: "itb-osdf-pelican-cache.osdf-dev.chtc.io"
+sitename: ITB-OSDF-PELICAN-CACHE
 
 federation:
   discoveryUrl: "https://osdf-itb.osg-htc.org"
@@ -58,9 +59,6 @@ logging:
     Http: debug
     Ofs: debug
     Pfc: debug
-
-xrootd:
-  sitename: ITB-OSDF-PELICAN-CACHE
 
 nodeSelector:
   datacenter: wid-vlan5

@@ -9,6 +9,9 @@ replicaCount: 1
 # -- (Required) External FQDN of the cache server
 serverHostname: ""
 
+# -- (Required) Site name reported to the federation
+sitename: ""
+
 # -- Federation configuration
 federation:
   # -- Discovery URL for the federation (OSDF default)
@@ -184,8 +187,6 @@ webPasswordSecretKey: "server-web-passwd"
 
 # -- XRootD configuration
 xrootd:
-  # -- XRootD site name reported to the federation
-  sitename: ""
   # -- Raw xrootd.conf content (creates a ConfigMap and mounts it)
   extraConfig: ""
 

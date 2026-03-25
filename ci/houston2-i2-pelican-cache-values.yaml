@@ -2,6 +2,7 @@
 # from tiger-osg-config. Secrets must be created separately before install.
 
 serverHostname: "dtn-pas.hous.nrp.internet2.edu"
+sitename: HOUSTON2_INTERNET2_OSDF_CACHE
 
 federation:
   discoveryUrl: "https://osg-htc.org"
@@ -83,8 +84,9 @@ adminUsers: "http://cilogon.org/serverE/users/133679 http://cilogon.org/serverA/
 webPasswordSecret: osdf-web-pass-nrp
 webPasswordSecretKey: server-web-passwd
 
+xrootdSitename: HOUSTON2_INTERNET2_OSDF_CACHE
+
 xrootd:
-  sitename: HOUSTON2_INTERNET2_OSDF_CACHE
   # The real deployment uses an external ConfigMap (xrootdtrt-cfg) for xrootd config.
   # xrootd.extraConfig could inline it here if the content were known.
   extraConfig: ""

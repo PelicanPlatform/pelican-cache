@@ -131,9 +131,7 @@ Lotman:
   LotHome: /var/lib/pelican/lotman
 {{- end }}
 
-{{- if .Values.xrootd.sitename }}
-XrootD.Sitename: {{ .Values.xrootd.sitename | quote }}
-{{- end }}
+XrootD.Sitename: {{ required "sitename is required" .Values.sitename | quote }}
 {{- if .Values.xrootd.extraConfig }}
 XrootD.ConfigFile: /etc/pelican/xrootd.conf
 {{- end }}
@@ -244,6 +242,10 @@ Validate required values and conditional requirements.
   {{- if eq (trim (default "" .Values.issuerKey.existingSecret)) "" }}
     {{- fail "issuerKey.existingSecret must be nonempty when issuerKey.type is \"existingSecret\"" }}
   {{- end }}
+{{- end }}
+
+{{- if eq (trim (default "" .Values.sitename)) "" }}
+  {{- fail "sitename must be nonempty" }}
 {{- end }}
 
 {{- if $loggingPersist }}
