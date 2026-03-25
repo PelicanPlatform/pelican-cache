@@ -80,7 +80,7 @@ Server:
     {{- toYaml .Values.adminUsers | nindent 4 }}
 {{- end }}
 {{- if .Values.webPasswordSecret }}
-  UIPasswordFile: /etc/pelican/web-passwd/password
+  UIPasswordFile: /etc/pelican/server-web-passwd
 {{- end }}
 
 {{- if .Values.cache.blocksToPrefetch }}

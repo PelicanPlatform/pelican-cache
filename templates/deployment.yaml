@@ -111,8 +111,8 @@ its own CA there.  So we use a different directory here and in the Pelican confi
             {{- if .Values.webPasswordSecret }}
             - name: web-passwd
               readOnly: true
-              mountPath: /etc/pelican/web-passwd/password
-              subPath: {{ .Values.webPasswordSecretKey | default "password" }}
+              mountPath: /etc/pelican/server-web-passwd
+              subPath: {{ .Values.webPasswordSecretKey | default "server-web-passwd" }}
             {{- end }}
             {{- if .Values.xrootd.extraConfig }}
             - name: xrootd-config
@@ -245,8 +245,8 @@ its own CA there.  So we use a different directory here and in the Pelican confi
           secret:
             secretName: {{ .Values.webPasswordSecret }}
             items:
-              - key: {{ .Values.webPasswordSecretKey | default "password" }}
-                path: {{ .Values.webPasswordSecretKey | default "password" }}
+              - key: {{ .Values.webPasswordSecretKey | default "server-web-passwd" }}
+                path: {{ .Values.webPasswordSecretKey | default "server-web-passwd" }}
                 mode: 0600
         {{- end }}
 

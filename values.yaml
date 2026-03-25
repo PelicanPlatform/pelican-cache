@@ -180,7 +180,7 @@ adminUsers: []
 # -- Name of an existing Secret containing the web UI password file
 webPasswordSecret: ""
 # -- Key within the web password Secret
-webPasswordSecretKey: "password"
+webPasswordSecretKey: "server-web-passwd"
 
 # -- XRootD configuration
 xrootd:
