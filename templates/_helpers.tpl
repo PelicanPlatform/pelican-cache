@@ -68,6 +68,7 @@ Generate the Pelican instance configuration (50-instance.yaml content).
 This is the user-configurable layer that Pelican loads from /etc/pelican/config.d/.
 */}}
 {{- define "pelican-cache.instanceConfig" -}}
+{{- include "pelican-cache.validateFederation" . }}
 ---
 Federation:
   DiscoveryUrl: {{ .Values.federation.discoveryUrl | quote }}
@@ -171,3 +172,43 @@ false
 {{- end -}}
 {{- end -}}
 {{- end }}
+
+{{/*
+Validate that federation.discoveryUrl and federation.label are consistent.
+The two known federations each require a specific pairing:
+  - https://osg-htc.org           <-> osdf
+  - https://osdf-itb.osg-htc.org  <-> osdf-itb
+If either value in a pair is set to one of the known values, the other must
+match exactly.
+*/}}
+{{- define "pelican-cache.validateFederation" -}}
+{{- $url   := .Values.federation.discoveryUrl | default "" }}
+{{- $label := .Values.federation.label        | default "" }}
+
+{{- /* url → required label */}}
+{{- if eq $url "https://osg-htc.org" }}
+  {{- if and $label (ne $label "osdf") }}
+    {{- fail (printf "federation.discoveryUrl is %q but federation.label is %q — it must be \"osdf\"" $url $label) }}
+  {{- end }}
+{{- end }}
+
+{{- if eq $url "https://osdf-itb.osg-htc.org" }}
+  {{- if and $label (ne $label "osdf-itb") }}
+    {{- fail (printf "federation.discoveryUrl is %q but federation.label is %q — it must be \"osdf-itb\"" $url $label) }}
+  {{- end }}
+{{- end }}
+
+{{- /* label → required url */}}
+{{- if eq $label "osdf" }}
+  {{- if and $url (ne $url "https://osg-htc.org") }}
+    {{- fail (printf "federation.label is %q but federation.discoveryUrl is %q — it must be \"https://osg-htc.org\"" $label $url) }}
+  {{- end }}
+{{- end }}
+
+{{- if eq $label "osdf-itb" }}
+  {{- if and $url (ne $url "https://osdf-itb.osg-htc.org") }}
+    {{- fail (printf "federation.label is %q but federation.discoveryUrl is %q — it must be \"https://osdf-itb.osg-htc.org\"" $label $url) }}
+  {{- end }}
+{{- end }}
+{{- end }}
+

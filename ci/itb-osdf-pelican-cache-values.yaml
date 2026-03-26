@@ -4,8 +4,8 @@
 serverHostname: "itb-osdf-pelican-cache.osdf-dev.chtc.io"
 
 federation:
-  discoveryUrl: "https://discovery.osdf-dev.chtc.io"
-  label: osdf
+  discoveryUrl: "https://osdf-itb.osg-htc.org"
+  label: osdf-itb
 
 image:
   repository: hub.opensciencegrid.org/pelican_platform/osdf-cache

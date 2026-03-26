@@ -14,7 +14,7 @@ federation:
   # -- Discovery URL for the federation (OSDF default)
   discoveryUrl: "https://osg-htc.org"
   # -- Federation label applied to all resources (e.g. "osdf")
-  label: ""
+  label: "osdf"
 
 # -- Cache container image
 image:
