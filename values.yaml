@@ -23,7 +23,7 @@ federation:
 image:
   repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
   tag: ""
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 # -- Logrotate sidecar configuration
 logrotate:
