@@ -22,10 +22,20 @@ image:
   tag: ""
   pullPolicy: Always
 
-# -- Logrotate sidecar image
-logrotateImage:
-  repository: hub.opensciencegrid.org/opensciencegrid/logrotate
-  tag: "24-release"
+# -- Logrotate sidecar configuration
+logrotate:
+  image:
+    repository: hub.opensciencegrid.org/opensciencegrid/logrotate
+    tag: "24-release"
+  resources:
+    requests:
+      cpu: "1"
+      memory: "500M"
+    limits:
+      cpu: "2"
+      memory: "2G"
+  size: 500M
+  rotate: 10
 
 # -- CVMFS port redirector sidecar
 cvmfsRedirector:
@@ -118,28 +128,24 @@ resources:
       cpu: "1000m"
       memory: "16Gi"
     limits: {}
-  logrotate:
-    requests:
-      cpu: "1"
-      memory: "500M"
-    limits:
-      cpu: "2"
-      memory: "2G"
 
 # -- Logging configuration
 logging:
-  # -- Set to false to disable persisted logging (no logging PVC and no logging volume mounts).
-  persist: true
-  # -- Global log level
-  level: INFO
-  # -- PVC configuration for persisted logs (used when persist=true)
-  pvc:
+  persistence:
+    # -- Provision a dedicated PVC for the /var/log/pelican volume.
+    # -- When false, the data volume is also mounted at /var/log.
+    # -- This supports deployments that write logs to /var/log/pelican
+    # -- on the cache disk (e.g. via extraPelicanConfig.Logging.LogLocation).
+    # -- Logrotate always runs.
+    separateVolume: true
     # -- Name of an existing PVC to use for logs (if set, storageClass and size are ignored)
     existingClaim: ""
     # -- Storage class for creating a new logging PVC
     storageClass: ""
     # -- Logging PVC size when creating a new PVC
     size: 50Gi
+  # -- Global log level
+  level: INFO
   # -- Per-subsystem cache log levels
   cache: {}
   #   Pss: debug
@@ -225,7 +231,3 @@ extraVolumeMounts: []
 # chart-managed settings so they can override them.
 extraPelicanConfig: {}
 
-# -- Logrotate settings
-logrotate:
-  size: 500M
-  rotate: 10

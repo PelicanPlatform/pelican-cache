@@ -72,13 +72,12 @@ spec:
               subPath: 50-instance.yaml
             - name: data
               mountPath: /cache
-            {{- $loggingPersist := true }}
-            {{- if hasKey .Values.logging "persist" }}
-            {{- $loggingPersist = .Values.logging.persist }}
-            {{- end }}
-            {{- if $loggingPersist }}
+            {{- if .Values.logging.persistence.separateVolume }}
             - name: logging-volume
               mountPath: /var/log/pelican
+            {{- else }}
+            - name: data
+              mountPath: /var/log
             {{- end }}
             {{- if eq .Values.issuerKey.type "existingSecret" }}
             - name: issuer-key
@@ -140,19 +139,19 @@ its own CA there.  So we use a different directory here and in the Pelican confi
 
         # ---- Logrotate sidecar ----
         - name: logrotate
-          image: "{{ .Values.logrotateImage.repository }}:{{ .Values.logrotateImage.tag }}"
-          {{- with .Values.resources.logrotate }}
+          image: "{{ .Values.logrotate.image.repository }}:{{ .Values.logrotate.image.tag }}"
+          imagePullPolicy: Always
+          {{- with .Values.logrotate.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
-            {{- $loggingPersist := true }}
-            {{- if hasKey .Values.logging "persist" }}
-            {{- $loggingPersist = .Values.logging.persist }}
-            {{- end }}
-            {{- if $loggingPersist }}
+            {{- if .Values.logging.persistence.separateVolume }}
             - name: logging-volume
               mountPath: /var/log/pelican
+            {{- else }}
+            - name: data
+              mountPath: /var/log
             {{- end }}
             - name: log-rotate-config
               mountPath: /etc/logrotate.d/
@@ -199,15 +198,11 @@ its own CA there.  So we use a different directory here and in the Pelican confi
             type: Directory
         {{- end }}
 
-        {{- $loggingPersist := true }}
-        {{- if hasKey .Values.logging "persist" }}
-        {{- $loggingPersist = .Values.logging.persist }}
-        {{- end }}
-        {{- if $loggingPersist }}
         # Logging volume
+        {{- if .Values.logging.persistence.separateVolume }}
         - name: logging-volume
           persistentVolumeClaim:
-            claimName: {{ if .Values.logging.pvc.existingClaim }}{{ .Values.logging.pvc.existingClaim }}{{ else }}{{ include "pelican-cache.fullname" . }}-logging{{ end }}
+            claimName: {{ if .Values.logging.persistence.existingClaim }}{{ .Values.logging.persistence.existingClaim }}{{ else }}{{ include "pelican-cache.fullname" . }}-logging{{ end }}
         {{- end }}
 
         # Issuer key

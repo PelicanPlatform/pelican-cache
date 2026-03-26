@@ -48,7 +48,8 @@ resources:
 
 logging:
   level: "debug"
-  pvc:
+  persistence:
+    separateVolume: true
     storageClass: 3x-replica-block
     size: 10Gi
   cache:

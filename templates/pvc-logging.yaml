@@ -1,10 +1,7 @@
 {{- $pvcName := printf "%s-logging" (include "pelican-cache.fullname" .) -}}
 {{- $shouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $pvcName) | trim) "true" -}}
-{{- $loggingPersist := true -}}
-{{- if hasKey .Values.logging "persist" -}}
-{{- $loggingPersist = .Values.logging.persist -}}
-{{- end -}}
-{{- if and $loggingPersist (not .Values.logging.pvc.existingClaim) $shouldRender }}
+{{- $loggingPersist := .Values.logging.persistence.separateVolume -}}
+{{- if and $loggingPersist (not .Values.logging.persistence.existingClaim) $shouldRender }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -14,12 +11,12 @@ metadata:
   labels:
     {{- include "pelican-cache.labels" . | nindent 4 }}
 spec:
-  {{- if .Values.logging.pvc.storageClass }}
-  storageClassName: {{ .Values.logging.pvc.storageClass | quote }}
+  {{- if .Values.logging.persistence.storageClass }}
+  storageClassName: {{ .Values.logging.persistence.storageClass | quote }}
   {{- end }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.logging.pvc.size }}
+      storage: {{ .Values.logging.persistence.size }}
 {{- end }}

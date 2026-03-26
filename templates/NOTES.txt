@@ -22,10 +22,7 @@ View logs:
 For more information: https://docs.pelicanplatform.org/
 
 {{- $fullname := include "pelican-cache.fullname" . }}
-{{- $loggingPersist := true -}}
-{{- if hasKey .Values.logging "persist" -}}
-{{- $loggingPersist = .Values.logging.persist -}}
-{{- end -}}
+{{- $loggingPersist := .Values.logging.persistence.separateVolume -}}
 
 {{- $createdPVCs := list -}}
 
@@ -37,7 +34,7 @@ For more information: https://docs.pelicanplatform.org/
 
 {{- $loggingPvcName := printf "%s-logging" $fullname -}}
 {{- $loggingShouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $loggingPvcName) | trim) "true" -}}
-{{- if and $loggingPersist (not .Values.logging.pvc.existingClaim) $loggingShouldRender -}}
+{{- if and $loggingPersist (not .Values.logging.persistence.existingClaim) $loggingShouldRender -}}
 {{- $createdPVCs = append $createdPVCs $loggingPvcName -}}
 {{- end -}}
 

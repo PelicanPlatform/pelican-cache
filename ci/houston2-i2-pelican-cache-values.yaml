@@ -50,7 +50,9 @@ resources:
     limits:
       cpu: "16000m"
       memory: "210Gi"
-  logrotate:
+
+logrotate:
+  resources:
     requests:
       cpu: "1"
       memory: "500M"
@@ -60,7 +62,8 @@ resources:
 
 # Logs go to the cache volume (/cache/pelican/), no separate logging PVC.
 logging:
-  persist: false
+  persistence:
+    separateVolume: false
   level: INFO
   cache:
     Pss: warn
