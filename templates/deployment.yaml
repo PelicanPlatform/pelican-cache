@@ -42,7 +42,11 @@ spec:
         # ---- Main Pelican cache container ----
         - name: pelican-cache
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          {{- if .Values.sleep }}
+          command: ["sleep", "infinity"]
+          {{- else }}
           args: []
+          {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with .Values.resources.cache }}
           resources:

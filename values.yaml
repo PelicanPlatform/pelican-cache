@@ -190,6 +190,9 @@ xrootd:
   # -- Raw xrootd.conf content (creates a ConfigMap and mounts it)
   extraConfig: ""
 
+# -- Debugging: set this to true to sleep instead of starting the cache
+sleep: false
+
 # -- Network policy
 networkPolicy:
   enabled: true
