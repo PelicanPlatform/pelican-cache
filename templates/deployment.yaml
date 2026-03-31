@@ -112,11 +112,11 @@ its own CA there.  So we use a different directory here and in the Pelican confi
               subPath: client.secret
               readOnly: true
             {{- end }}
-            {{- if .Values.webPasswordSecret }}
+            {{- if .Values.webPassword.existingSecret }}
             - name: web-passwd
               readOnly: true
               mountPath: /etc/pelican/server-web-passwd
-              subPath: {{ .Values.webPasswordSecretKey | default "server-web-passwd" }}
+              subPath: {{ .Values.webPassword.key | default "server-web-passwd" }}
             {{- end }}
             {{- if .Values.xrootd.extraConfig }}
             - name: xrootd-config
@@ -243,14 +243,14 @@ its own CA there.  So we use a different directory here and in the Pelican confi
                 path: client.secret
         {{- end }}
 
-        {{- if .Values.webPasswordSecret }}
+        {{- if .Values.webPassword.existingSecret }}
         # Web UI password
         - name: web-passwd
           secret:
-            secretName: {{ .Values.webPasswordSecret }}
+            secretName: {{ .Values.webPassword.existingSecret }}
             items:
-              - key: {{ .Values.webPasswordSecretKey | default "server-web-passwd" }}
-                path: {{ .Values.webPasswordSecretKey | default "server-web-passwd" }}
+              - key: {{ .Values.webPassword.key | default "server-web-passwd" }}
+                path: {{ .Values.webPassword.key | default "server-web-passwd" }}
                 mode: 0600
         {{- end }}
 

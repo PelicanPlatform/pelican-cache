@@ -70,8 +70,9 @@ securityContext:
   capabilities:
     add: ["SYS_PTRACE"]
 
-webPasswordSecret: itb-pelican-server-web-passwd
-webPasswordSecretKey: server-web-passwd
+webPassword:
+  existingSecret: itb-pelican-server-web-passwd
+  key: server-web-passwd
 
 # Settings not directly parameterized by the chart; merged via extraPelicanConfig.
 extraPelicanConfig:

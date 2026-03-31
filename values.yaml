@@ -175,10 +175,11 @@ oidc:
 adminUsers: []
 #   - "http://cilogon.org/serverA/users/12345"
 
-# -- Name of an existing Secret containing the web UI password file
-webPasswordSecret: ""
-# -- Key within the web password Secret
-webPasswordSecretKey: "server-web-passwd"
+webPassword:
+  # -- Name of an existing Secret containing the web UI password file
+  existingSecret: ""
+  # -- Key within the web password Secret
+  key: "server-web-passwd"
 
 # -- XRootD configuration
 xrootd:

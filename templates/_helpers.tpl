@@ -79,7 +79,7 @@ Server:
   UIAdminUsers:
     {{- toYaml .Values.adminUsers | nindent 4 }}
 {{- end }}
-{{- if .Values.webPasswordSecret }}
+{{- if .Values.webPassword.existingSecret }}
   UIPasswordFile: /etc/pelican/server-web-passwd
 {{- end }}
 
@@ -270,8 +270,8 @@ Validate required values and conditional requirements.
   {{- end }}
 {{- end }}
 
-{{- if eq (trim (default "" .Values.webPasswordSecret)) "" }}
-  {{- fail "webPasswordSecret must be nonempty" }}
+{{- if eq (trim (default "" .Values.webPassword.existingSecret)) "" }}
+  {{- fail "webPassword.existingSecret must be nonempty" }}
 {{- end }}
 
 {{- if and .Values.tls.certManager.enabled .Values.tls.existingSecret }}

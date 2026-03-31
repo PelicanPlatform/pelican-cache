@@ -42,7 +42,7 @@ helm install my-cache ./pelican-cache \
   --set cache.pvc.storageClass=my-storage-class \
   --set logging.persistence.storageClass=my-storage-class \
   --set issuerKey.pvc.storageClass=my-storage-class \
-  --set webPasswordSecret=my-web-passwd-secret
+  --set webPassword.existingSecret=my-web-passwd-secret
 ```
 
 ### Installation with a values file
@@ -156,11 +156,11 @@ Your options are:
 | Parameter | Default | Description |
 |---|---|---|
 | `adminUsers` | `[]` | List of CILogon admin user identities |
-| `webPasswordSecret` | `""` | Existing Secret for web UI password |
-| `webPasswordSecretKey` | `server-web-passwd` | Key within the web password Secret |
+| `webPassword.existingSecret` | `""` | Existing Secret for web UI password |
+| `webPassword.key` | `server-web-passwd` | Key within the web password Secret |
 
 You must create a secret containing a file named `server-web-passwd` that was created by running `pelican generate password`
-and specify that as `webPasswordSecret`.
+and specify that as `webPassword.existingSecret`.
 
 ### Federation (customization optional)
 
@@ -307,7 +307,8 @@ logging:
   persistence:
     storageClass: standard
 
-webPasswordSecret: my-web-passwd-secret
+webPassword:
+  existingSecret: my-web-passwd-secret
 ```
 
 ### Production Cache (hostPath, like uw-osdf-cache)
@@ -370,7 +371,8 @@ oidc:
 adminUsers:
   - "http://cilogon.org/serverE/users/12345"
   - "http://cilogon.org/serverA/users/67890"
-webPasswordSecret: my-web-passwd-secret
+webPassword:
+  existingSecret: my-web-passwd-secret
 
 xrootd:
   extraConfig: |
@@ -431,7 +433,7 @@ The chart enforces the following validation rules at render time to ensure a val
 - If `oidc.enabled` is `true`, `oidc.existingSecret` must be nonempty
 
 **Web UI:**
-- `webPasswordSecret` must be nonempty
+- `webPassword.existingSecret` must be nonempty
 
 **Federation:**
 - `serverHostname` must be nonempty
@@ -451,7 +453,7 @@ Secrets the chart may reference:
 |---|---|---|
 | `issuerKey.existingSecret` | Key named per `issuerKey.secretKey` (default: `private-key.pem`) | Pelican issuer/signing key |
 | `oidc.existingSecret` | `client.id`, `client.secret` | OIDC client credentials |
-| `webPasswordSecret` | Key named per `webPasswordSecretKey` (default: `server-web-passwd`) | Web UI password file |
+| `webPassword.existingSecret` | Key named per `webPassword.key` (default: `server-web-passwd`) | Web UI password file |
 | `tls.existingSecret` | `tls.crt`, `tls.key` | TLS certificate (if not using cert-manager) |
 
 ## Upgrading
