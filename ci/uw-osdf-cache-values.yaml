@@ -32,14 +32,15 @@ issuerKey:
   existingSecret: uw-osdf-cache-issuer-key
   secretKey: issuer.pem
 
-certificate:
-  enabled: true
-  issuerRef:
-    name: letsencrypt-prod
-    kind: ClusterIssuer
-  dnsNames:
-    - osdf-uw-cache.svc.osdf-prod.chtc.io
-    - osdf-uw-cache.svc.osg-htc.org
+tls:
+  certManager:
+    enabled: true
+    issuerRef:
+      name: letsencrypt-prod
+      kind: ClusterIssuer
+    dnsNames:
+      - osdf-uw-cache.svc.osdf-prod.chtc.io
+      - osdf-uw-cache.svc.osg-htc.org
 
 service:
   type: LoadBalancer

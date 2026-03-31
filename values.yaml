@@ -99,20 +99,18 @@ issuerKey:
   # -- Key within the Secret that contains the issuer key file
   secretKey: "private-key.pem"
 
-# -- TLS certificate configuration (via cert-manager)
-certificate:
-  # -- Create a cert-manager Certificate resource
-  enabled: true
-  issuerRef:
-    # -- Name of the ClusterIssuer or Issuer
-    name: letsencrypt-prod
-    # -- Kind: ClusterIssuer or Issuer
-    kind: ClusterIssuer
-  # -- Additional DNS Subject Alternative Names for the certificate (serverHostname is always included)
-  dnsNames: []
-
-# -- Use an existing TLS Secret instead of cert-manager
 tls:
+  certManager:
+    # -- Create a cert-manager Certificate resource
+    enabled: true
+    issuerRef:
+      # -- Name of the ClusterIssuer or Issuer
+      name: letsencrypt-prod
+      # -- Kind: ClusterIssuer or Issuer
+      kind: ClusterIssuer
+    # -- Additional DNS Subject Alternative Names for the certificate (serverHostname is always included)
+    dnsNames: []
+  # -- Use an existing TLS Secret instead of cert-manager
   existingSecret: ""
 
 # -- Service configuration

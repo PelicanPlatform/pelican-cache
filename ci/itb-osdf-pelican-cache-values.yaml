@@ -27,13 +27,14 @@ issuerKey:
   existingSecret: itb-osdf-pelican-cache-issuer-keys
   secretKey: issuer.pem
 
-certificate:
-  enabled: true
-  issuerRef:
-    name: letsencrypt-prod
-    kind: ClusterIssuer
-  dnsNames:
-    - itb-osdf-pelican-cache.osdf-dev.chtc.io
+tls:
+  certManager:
+    enabled: true
+    issuerRef:
+      name: letsencrypt-prod
+      kind: ClusterIssuer
+    dnsNames:
+      - itb-osdf-pelican-cache.osdf-dev.chtc.io
 
 service:
   type: LoadBalancer

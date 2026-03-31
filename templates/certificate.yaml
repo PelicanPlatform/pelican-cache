@@ -1,5 +1,5 @@
-{{- if .Values.certificate.enabled }}
-{{- $dnsNames := concat (list (required "serverHostname is required" .Values.serverHostname)) (.Values.certificate.dnsNames | default (list)) | uniq }}
+{{- if .Values.tls.certManager.enabled }}
+{{- $dnsNames := concat (list (required "serverHostname is required" .Values.serverHostname)) (.Values.tls.certManager.dnsNames | default (list)) | uniq }}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -10,7 +10,7 @@ spec:
   dnsNames:
     {{- toYaml $dnsNames | nindent 4 }}
   issuerRef:
-    name: {{ .Values.certificate.issuerRef.name }}
-    kind: {{ .Values.certificate.issuerRef.kind }}
+    name: {{ .Values.tls.certManager.issuerRef.name }}
+    kind: {{ .Values.tls.certManager.issuerRef.kind }}
   secretName: {{ include "pelican-cache.fullname" . }}-tls
 {{- end }}

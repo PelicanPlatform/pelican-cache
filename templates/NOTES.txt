@@ -5,10 +5,10 @@ Pelican Cache {{ .Chart.AppVersion }} has been deployed.
   Hostname:   {{ .Values.serverHostname }}
   Federation: {{ .Values.federation.discoveryUrl }}
 
-{{- if .Values.certificate.enabled }}
+{{- if .Values.tls.certManager.enabled }}
 
-TLS certificate will be issued by {{ .Values.certificate.issuerRef.kind }}/{{ .Values.certificate.issuerRef.name }}.
-DNS names: {{ .Values.serverHostname }}{{- range .Values.certificate.dnsNames }}, {{ . }}{{- end }}
+TLS certificate will be issued by {{ .Values.tls.certManager.issuerRef.kind }}/{{ .Values.tls.certManager.issuerRef.name }}.
+DNS names: {{ .Values.serverHostname }}{{- range .Values.tls.certManager.dnsNames }}, {{ . }}{{- end }}
 {{- end }}
 
 Check deployment status:

@@ -273,5 +273,13 @@ Validate required values and conditional requirements.
 {{- if eq (trim (default "" .Values.webPasswordSecret)) "" }}
   {{- fail "webPasswordSecret must be nonempty" }}
 {{- end }}
+
+{{- if and .Values.tls.certManager.enabled .Values.tls.existingSecret }}
+  {{- fail "tls.existingSecret and tls.certManager.enabled cannot both be set; choose exactly one TLS source" }}
+{{- end }}
+
+{{- if and (not .Values.tls.certManager.enabled) (eq (trim (default "" .Values.tls.existingSecret)) "") }}
+  {{- fail "tls.existingSecret must be nonempty when tls.certManager.enabled is false" }}
+{{- end }}
 {{- end }}
 

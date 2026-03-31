@@ -31,10 +31,9 @@ issuerKey:
 # The real deployment creates its own Certificate (Issuer, not ClusterIssuer)
 # and uses a differently named secret ("certs").
 # We use tls.existingSecret to reference that pre-existing secret.
-certificate:
-  enabled: false
-
 tls:
+  certManager:
+    enabled: false
   existingSecret: houston2-i2-certs
 
 # hostNetwork: true binds directly to the node's network and disables the Service.
