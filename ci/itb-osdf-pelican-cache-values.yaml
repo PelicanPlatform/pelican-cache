@@ -21,6 +21,10 @@ cache:
     storageClass: 3x-replica-hdd-raddus
     size: 100Gi
   concurrency: 40
+  resources:
+    requests:
+      cpu: "8"
+      memory: "16Gi"
 
 issuerKey:
   type: existingSecret
@@ -41,12 +45,6 @@ service:
   annotations:
     external-dns.alpha.kubernetes.io/hostname: itb-osdf-pelican-cache.osdf-dev.chtc.io
     metallb.universe.tf/address-pool: tiger-vlan5
-
-resources:
-  cache:
-    requests:
-      cpu: "8"
-      memory: "16Gi"
 
 logging:
   level: "debug"

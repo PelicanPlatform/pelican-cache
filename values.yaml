@@ -84,6 +84,11 @@ cache:
   filesNominalSize: ""
   # -- diskusage base file tracking size (e.g. "16500g")
   filesBaseSize: ""
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "16Gi"
+    limits: {}
 
 # -- Issuer key configuration
 issuerKey:
@@ -121,14 +126,6 @@ service:
   externalTrafficPolicy: Local
   # -- Extra annotations (e.g. external-dns, metallb)
   annotations: {}
-
-# -- Container resource requests and limits
-resources:
-  cache:
-    requests:
-      cpu: "1000m"
-      memory: "16Gi"
-    limits: {}
 
 # -- Logging configuration
 logging:

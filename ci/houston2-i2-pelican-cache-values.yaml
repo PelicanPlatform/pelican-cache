@@ -22,6 +22,13 @@ cache:
   hostPath:
     path: /cache
   concurrency: 160
+  resources:
+    requests:
+      cpu: "16000m"
+      memory: "210Gi"
+    limits:
+      cpu: "16000m"
+      memory: "210Gi"
 
 issuerKey:
   type: existingSecret
@@ -41,15 +48,6 @@ hostNetwork: true
 
 networkPolicy:
   enabled: false
-
-resources:
-  cache:
-    requests:
-      cpu: "16000m"
-      memory: "210Gi"
-    limits:
-      cpu: "16000m"
-      memory: "210Gi"
 
 logrotate:
   resources:

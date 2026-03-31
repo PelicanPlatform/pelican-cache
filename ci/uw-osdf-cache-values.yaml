@@ -26,6 +26,10 @@ cache:
   filesMaxSize: 17500g
   filesNominalSize: 17000g
   filesBaseSize: 16500g
+  resources:
+    requests:
+      cpu: "24"
+      memory: "48Gi"
 
 issuerKey:
   type: existingSecret
@@ -48,12 +52,6 @@ service:
   annotations:
     external-dns.alpha.kubernetes.io/hostname: osdf-uw-cache.svc.osdf-prod.chtc.io
     metallb.universe.tf/address-pool: tiger-vlan5
-
-resources:
-  cache:
-    requests:
-      cpu: "24"
-      memory: "48Gi"
 
 logrotate:
   resources:

@@ -232,9 +232,9 @@ For details on `Files*Size` parameters, see the [XRootD PFC documentation](https
 
 | Parameter | Default | Description |
 |---|---|---|
-| `resources.cache.requests.cpu` | `1000m` | Cache container CPU request |
-| `resources.cache.requests.memory` | `16Gi` | Cache container memory request |
-| `resources.cache.limits` | `{}` | Cache container limits |
+| `cache.resources.requests.cpu` | `1000m` | Cache container CPU request |
+| `cache.resources.requests.memory` | `16Gi` | Cache container memory request |
+| `cache.resources.limits` | `{}` | Cache container limits |
 | `logrotate.resources.requests.cpu` | `1` | Logrotate CPU request |
 | `logrotate.resources.requests.memory` | `500M` | Logrotate memory request |
 | `logrotate.resources.limits.cpu` | `2` | Logrotate CPU limit |
@@ -327,6 +327,10 @@ cache:
   concurrency: 240
   highWaterMark: 27000g
   lowWaterMark: 25000g
+  resources:
+    requests:
+      cpu: "24"
+      memory: "48Gi"
 
 issuerKey:
   type: existingSecret
@@ -344,12 +348,6 @@ service:
   annotations:
     external-dns.alpha.kubernetes.io/hostname: osdf-uw-cache.svc.osdf-prod.chtc.io
     metallb.universe.tf/address-pool: tiger-vlan5
-
-resources:
-  cache:
-    requests:
-      cpu: "24"
-      memory: "48Gi"
 
 logging:
   level: debug
