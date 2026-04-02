@@ -16,18 +16,33 @@ This Helm chart collapses these three layers into a single, parameterized chart 
 
 - Kubernetes 1.24+
 - Helm 3.x
-- [cert-manager](https://cert-manager.io/) (if using `certificate.enabled: true`)
-- Pre-created Secrets for sensitive data (issuer keys, OIDC credentials, web UI passwords)
+- Optional: [cert-manager](https://cert-manager.io/) for creating certificates.
+- Pre-created Secrets for sensitive data (issuer keys, OIDC credentials, web UI passwords),
+  see "Create Required Secrets" below.
+
 
 ## Quick Start
+
+### Create Required Secrets
+
+The following secrets must exist before the cache can be started:
+
+-   Web server admin key
+    Create this with `pelican generate password`
+
+-   Issuer key
+    Create this with `pelican key create`
 
 ### Minimal installation
 
 ```bash
 helm install my-cache ./pelican-cache \
   --set serverHostname=my-cache.example.com \
-  --set cache.storageClassName=my-storage-class \
-  --set logging.storageClassName=my-storage-class
+  --set sitename=my-site \
+  --set cache.pvc.storageClass=my-storage-class \
+  --set logging.persistence.storageClass=my-storage-class \
+  --set issuerKey.pvc.storageClass=my-storage-class \
+  --set webPasswordSecret=my-web-passwd-secret
 ```
 
 ### Installation with a values file
@@ -62,47 +77,123 @@ The chart manages several persistent volumes:
 
 | Volume | Purpose | Backing |
 |---|---|---|
-| Cache data | XRootD file cache | PVC or hostPath (`cache.storageType`) |
+| Cache data | XRootD file cache | PVC or hostPath (`cache.type`) |
 | Logging | Pelican log files | PVC (always) |
-| Namespace key | Pelican issuer/signing key | PVC or existing Secret (`namespaceKey.type`) |
+| Issuer key | Pelican issuer/signing key | PVC or existing Secret (`issuerKey.type`) |
 | Lotman data | Lot-based storage management | PVC (when `lotman.enabled`) |
 
 **NVMe storage is strongly recommended for the cache data volume.**
 
 ## Configuration Reference
 
-### Required Values
+### Site Identity (customization required)
 
 | Parameter | Description |
 |---|---|
 | `serverHostname` | External FQDN of the cache. Chart fails to render without this. |
+| `sitename` | Site name reported to the federation |
 
-### Images
+Both of these values are required for the cache to be able to identify itself to the federation.
+
+### Cache Storage (customization required)
+
+Cache persistence must be specified; you must choose a value for `cache.type`, either `pvc` or `hostPath`,
+and then fill out the fields in the appropriate subsections.
+
+**PVC option** (`cache.type: pvc`): Use Kubernetes persistent volumes, creating new or referencing existing PVCs.  
+
+If using a PVC, you can use an existing PVC or have the chart create a new one.
+If using an existing PVC, you must set `cache.pvc.existingClaim` to the name of the PVC.
+If creating a new PVC, you must set `cache.pvc.storageClass` to one of the available storage classes in your cluster.
+PVCs created by this chart will not be deleted on uninstall.
+
+**HostPath option** (`cache.type: hostPath`): Bind-mount a directory from the node.
+
+If using a host path, you must specify the path in `cache.hostPath.path`.
 
 | Parameter | Default | Description |
 |---|---|---|
-| `image.repository` | `hub.opensciencegrid.org/pelican_platform/osdf-cache` | Cache container image |
-| `image.tag` | `v7.23.0` | Cache image tag |
-| `image.pullPolicy` | `Always` | Image pull policy |
-| `logrotateImage.repository` | `hub.opensciencegrid.org/opensciencegrid/logrotate` | Logrotate sidecar image |
-| `logrotateImage.tag` | `24-release` | Logrotate image tag |
+| `cache.type` | `pvc` | `pvc` or `hostPath` |
+| `cache.hostPath.path` | `""` | Host path (required when type is `hostPath`) |
+| `cache.pvc.existingClaim` | `""` | Existing PVC name (if set, ignores `storageClass` and `size`) |
+| `cache.pvc.storageClass` | `""` | StorageClass for new cache data PVC (required if `existingClaim` is not set) |
+| `cache.pvc.size` | `1000Gi` | Cache data PVC size (used when creating a new PVC) |
 
-### Federation
+### Issuer Key (customization required)
+
+| Parameter | Default | Description |
+|---|---|---|
+| `issuerKey.type` | `pvc` | `pvc` (Pelican auto-generates) or `existingSecret` |
+| `issuerKey.pvc.storageClass` | `""` | StorageClass for key PVC |
+| `issuerKey.pvc.size` | `10Mi` | Key PVC size |
+| `issuerKey.existingSecret` | `""` | Pre-existing Secret name (when type is `existingSecret`) |
+| `issuerKey.secretKey` | `private-key.pem` | Key within the Secret |
+
+You must specify a way to store the issuer key (which is the key Pelican uses to sign credentials
+and authenticate itself to the federation).
+Your options are:
+
+1.  Have Pelican generate the key and save it to a PVC that the chart creates.
+    To do this, specify `issuerKey.type: pvc` and `issuerKey.pvc.storageClass` to one of the available storage types in your cluster.
+    PVCs created by this chart will not be deleted on uninstall.
+
+2.  Pre-create the key using the `pelican key create` command, and save it as a secret.
+    To do this, specify `issuerKey.type: existingSecret` and specify the secret name as `issuerKey.existingSecret`.
+
+### Logging (customization required)
+
+| Parameter | Default | Description |
+|---|---|---|
+| `logging.persistence.separateVolume` | `true` | Provision a dedicated PVC for `/var/log/pelican`; when `false`, the data volume is also mounted at `/var/log` so `/var/log/pelican` can still live on cache storage. Logrotate always runs. |
+| `logging.level` | `INFO` | Global Pelican log level |
+| `logging.persistence.existingClaim` | `""` | Existing logging PVC name (if set, ignores `storageClass` and `size`) |
+| `logging.persistence.storageClass` | `""` | StorageClass for new logging PVC (required if `existingClaim` is not set and `separateVolume=true`) |
+| `logging.persistence.size` | `50Gi` | Logging PVC size (used when creating a new PVC) |
+| `logging.cache` | `{}` | Per-subsystem log levels (map, e.g. `{Pss: debug, Pfc: debug}`) |
+
+### Admin / Web UI (customization required)
+
+| Parameter | Default | Description |
+|---|---|---|
+| `adminUsers` | `[]` | List of CILogon admin user identities |
+| `webPasswordSecret` | `""` | Existing Secret for web UI password |
+| `webPasswordSecretKey` | `server-web-passwd` | Key within the web password Secret |
+
+You must create a secret containing a file named `server-web-passwd` that was created by running `pelican generate password`
+and specify that as `webPasswordSecret`.
+
+### Federation (customization optional)
 
 | Parameter | Default | Description |
 |---|---|---|
 | `federation.discoveryUrl` | `https://osg-htc.org` | Federation discovery URL. Change for non-OSDF or ITB. |
+| `federation.label` | `osdf` | Resource label indicating the federation. This must match the discovery URL when set to known values. |
 
-### Cache Storage
+The federation label and discovery URL have to match for the OSDF and OSDF-ITB federations.
+The valid pairs are:
+
+| discoveryUrl | label |
+|---|---|
+| https://osg-htc.org | osdf |
+| https://osdf-itb.osg-htc.org | osdf-itb |
+
+Checks are not performed for other federations.
+The default federation is OSDF so OSDF caches do not need to change this section.
+
+### Images (customization optional)
 
 | Parameter | Default | Description |
 |---|---|---|
-| `cache.storageType` | `pvc` | `pvc` or `hostPath` |
-| `cache.hostPath` | `""` | Host path (required when storageType is `hostPath`) |
-| `cache.storageClassName` | `""` | StorageClass for cache data PVC |
-| `cache.pvcSize` | `1000Gi` | Cache data PVC size |
+| `image.repository` | `hub.opensciencegrid.org/pelican_platform/osdf-cache` | Cache container image |
+| `image.tag` | `""` | Cache image tag (defaults to chart `appVersion` when empty) |
+| `image.pullPolicy` | `IfNotPresent` | Image pull policy for the cache container |
+| `logrotate.image.repository` | `hub.opensciencegrid.org/opensciencegrid/logrotate` | Logrotate sidecar image |
+| `logrotate.image.tag` | `24-release` | Logrotate image tag |
 
-### Cache Tuning
+The logrotate sidecar always uses `imagePullPolicy: Always` and that behavior is
+not configurable.
+
+### Cache Tuning (customization optional)
 
 | Parameter | Default | Description |
 |---|---|---|
@@ -116,16 +207,6 @@ The chart manages several persistent volumes:
 
 For details on `Files*Size` parameters, see the [XRootD PFC documentation](https://xrootd.web.cern.ch/doc/dev56/pss_config.pdf) (search for "diskusage").
 
-### Issuer / Namespace Key
-
-| Parameter | Default | Description |
-|---|---|---|
-| `namespaceKey.type` | `pvc` | `pvc` (Pelican auto-generates) or `existingSecret` |
-| `namespaceKey.pvc.storageClassName` | `""` | StorageClass for key PVC |
-| `namespaceKey.pvc.size` | `10Mi` | Key PVC size |
-| `namespaceKey.existingSecret` | `""` | Pre-existing Secret name (when type is `existingSecret`) |
-| `namespaceKey.secretKey` | `issuer.pem` | Key within the Secret |
-
 ### TLS / Certificates
 
 `serverHostname` is always included in the rendered cert-manager `Certificate.spec.dnsNames`; use `certificate.dnsNames` only for additional SANs.
@@ -138,7 +219,7 @@ For details on `Files*Size` parameters, see the [XRootD PFC documentation](https
 | `certificate.dnsNames` | `[]` | Additional DNS SANs (`serverHostname` is always included) |
 | `tls.existingSecret` | `""` | Use an existing TLS Secret instead of cert-manager |
 
-### Service
+### Service (customization optional)
 
 | Parameter | Default | Description |
 |---|---|---|
@@ -147,52 +228,41 @@ For details on `Files*Size` parameters, see the [XRootD PFC documentation](https
 | `service.externalTrafficPolicy` | `Local` | Traffic policy |
 | `service.annotations` | `{}` | Extra annotations (external-dns, metallb, etc.) |
 
-### Resources
+### Resources (customization optional)
 
 | Parameter | Default | Description |
 |---|---|---|
 | `resources.cache.requests.cpu` | `1000m` | Cache container CPU request |
 | `resources.cache.requests.memory` | `16Gi` | Cache container memory request |
 | `resources.cache.limits` | `{}` | Cache container limits |
-| `resources.logrotate.requests.cpu` | `1` | Logrotate CPU request |
-| `resources.logrotate.requests.memory` | `500M` | Logrotate memory request |
-| `resources.logrotate.limits.cpu` | `2` | Logrotate CPU limit |
-| `resources.logrotate.limits.memory` | `2G` | Logrotate memory limit |
-
-### Logging
-
-| Parameter | Default | Description |
-|---|---|---|
-| `logging.level` | `INFO` | Global Pelican log level |
-| `logging.storageClassName` | `""` | StorageClass for logging PVC |
-| `logging.pvcSize` | `5Gi` | Logging PVC size |
-| `logging.cache` | `{}` | Per-subsystem log levels (map, e.g. `{Pss: debug, Pfc: debug}`) |
+| `logrotate.resources.requests.cpu` | `1` | Logrotate CPU request |
+| `logrotate.resources.requests.memory` | `500M` | Logrotate memory request |
+| `logrotate.resources.limits.cpu` | `2` | Logrotate CPU limit |
+| `logrotate.resources.limits.memory` | `2G` | Logrotate memory limit |
 
 ### Optional Components
 
 | Parameter | Default | Description |
 |---|---|---|
+| `sleep` | `false` | Debug mode: run `sleep infinity` in the `pelican-cache` container instead of starting the cache process |
 | `cvmfsRedirector.enabled` | `false` | Enable CVMFS port redirector sidecar |
 | `lotman.enabled` | `false` | Enable Lotman (lot-based storage management) |
-| `lotman.storageClassName` | `""` | StorageClass for Lotman PVC |
-| `lotman.pvcSize` | `10Gi` | Lotman PVC size |
+| `lotman.pvc.existingClaim` | `""` | Existing Lotman PVC name (if set, ignores `storageClass` and `size`) |
+| `lotman.pvc.storageClass` | `""` | StorageClass for new Lotman PVC (required if `existingClaim` is not set and `enabled=true`) |
+| `lotman.pvc.size` | `10Gi` | Lotman PVC size (used when creating a new PVC) |
 | `oidc.enabled` | `false` | Enable OIDC authentication |
 | `oidc.existingSecret` | `""` | Secret with `client.id` and `client.secret` keys |
 
-### Admin / Web UI
+When `sleep` is `true`, the `pelican-cache` container starts with `sleep infinity` for debugging. After you `kubectl exec` into the container, you can start the cache manually with `pelican cache serve`.
+
+### XRootD (customization optional)
 
 | Parameter | Default | Description |
 |---|---|---|
-| `adminUsers` | `""` | Space-separated CILogon admin user identities |
-| `webPasswordSecret` | `""` | Existing Secret for web UI password |
-| `webPasswordSecretKey` | `password` | Key within the web password Secret |
-
-### XRootD
-
-| Parameter | Default | Description |
-|---|---|---|
-| `xrootd.sitename` | `""` | XRootD site name reported to the federation |
 | `xrootd.extraConfig` | `""` | Raw `xrootd.conf` content (e.g. `xrd.sched maxt 20000`) |
+
+`xrootd.extraConfig` is an escape hatch for settings that cannot be expressed
+through normal chart values. Prefer regular chart parameters when possible.
 
 ### Network Policy
 
@@ -200,7 +270,7 @@ For details on `Files*Size` parameters, see the [XRootD PFC documentation](https
 |---|---|---|
 | `networkPolicy.enabled` | `true` | Create a NetworkPolicy |
 
-### Scheduling
+### Scheduling (customization optional)
 
 | Parameter | Default | Description |
 |---|---|---|
@@ -208,7 +278,7 @@ For details on `Files*Size` parameters, see the [XRootD PFC documentation](https
 | `tolerations` | `[]` | Pod tolerations |
 | `affinity` | `{}` | Pod affinity rules |
 
-### Escape Hatches
+### Escape Hatches (customization optional)
 
 | Parameter | Default | Description |
 |---|---|---|
@@ -225,36 +295,40 @@ For details on `Files*Size` parameters, see the [XRootD PFC documentation](https
 
 ```yaml
 serverHostname: my-cache.osg-htc.org
+sitename: MY_OSDF_CACHE
 
 cache:
-  storageClassName: fast-nvme
-  pvcSize: 2000Gi
+  type: pvc
+  pvc:
+    storageClass: fast-nvme
+    size: 2000Gi
 
 logging:
-  storageClassName: standard
+  persistence:
+    storageClass: standard
 
-certificate:
-  dnsNames:
-    - my-cache-alt.example.org
+webPasswordSecret: my-web-passwd-secret
 ```
 
 ### Production Cache (hostPath, like uw-osdf-cache)
 
 ```yaml
 serverHostname: osdf-uw-cache.svc.osg-htc.org
+sitename: MY_PELICAN_CACHE
 
 image:
   tag: "v7.23.0"
 
 cache:
-  storageType: hostPath
-  hostPath: /srv/pelican-cache/
+  type: hostPath
+  hostPath:
+    path: /srv/pelican-cache/
   blocksToPrefetch: 10
   concurrency: 240
   highWaterMark: 27000g
   lowWaterMark: 25000g
 
-namespaceKey:
+issuerKey:
   type: existingSecret
   existingSecret: my-cache-issuer-key
 
@@ -278,25 +352,28 @@ resources:
 
 logging:
   level: debug
-  storageClassName: 3x-replica-hdd
-  pvcSize: 50Gi
+  persistence:
+    storageClass: 3x-replica-hdd
+    size: 50Gi
   cache:
     Pss: debug
     Pfc: debug
 
 lotman:
   enabled: true
-  storageClassName: 3x-replica-hdd
+  pvc:
+    storageClass: 3x-replica-hdd
 
 oidc:
   enabled: true
   existingSecret: osdf-component-oidc
 
-adminUsers: "http://cilogon.org/serverE/users/12345 http://cilogon.org/serverA/users/67890"
+adminUsers:
+  - "http://cilogon.org/serverE/users/12345"
+  - "http://cilogon.org/serverA/users/67890"
 webPasswordSecret: my-web-passwd-secret
 
 xrootd:
-  sitename: MY_PELICAN_CACHE
   extraConfig: |
     xrd.sched maxt 20000
 
@@ -325,8 +402,41 @@ image:
   repository: hub.opensciencegrid.org/pelican_platform/cache
 
 cache:
-  storageClassName: local-nvme
+  type: pvc
+  pvc:
+    storageClass: local-nvme
 ```
+
+## Validation Requirements
+
+The chart enforces the following validation rules at render time to ensure a valid configuration:
+
+**Storage:**
+- If `cache.type` is `pvc`:
+  - If `cache.pvc.existingClaim` is empty, `cache.pvc.storageClass` must be nonempty
+  - If `cache.pvc.existingClaim` is set, `storageClass` and `size` are ignored
+- If `cache.type` is `hostPath`:
+  - `cache.hostPath.path` must be nonempty
+
+**Issuer Key:**
+- If `issuerKey.type` is `pvc`, `issuerKey.pvc.storageClass` must be nonempty
+- If `issuerKey.type` is `existingSecret`, `issuerKey.existingSecret` must be nonempty
+
+**Logging:**
+- If `logging.persistence.separateVolume` is `true` and `logging.persistence.existingClaim` is empty, `logging.persistence.storageClass` must be nonempty
+
+**Lotman:**
+- If `lotman.enabled` is `true` and `lotman.pvc.existingClaim` is empty, `lotman.pvc.storageClass` must be nonempty
+
+**OIDC:**
+- If `oidc.enabled` is `true`, `oidc.existingSecret` must be nonempty
+
+**Web UI:**
+- `webPasswordSecret` must be nonempty
+
+**Federation:**
+- `serverHostname` must be nonempty
+- If `federation.discoveryUrl` or `federation.label` match a known federation pair (OSDF or OSDF-ITB), both must be set consistently
 
 ## Secrets Management
 
@@ -340,9 +450,9 @@ Secrets the chart may reference:
 
 | Value pointing to Secret | Keys expected | Purpose |
 |---|---|---|
-| `namespaceKey.existingSecret` | Key named per `namespaceKey.secretKey` (default: `issuer.pem`) | Pelican issuer/signing key |
+| `issuerKey.existingSecret` | Key named per `issuerKey.secretKey` (default: `private-key.pem`) | Pelican issuer/signing key |
 | `oidc.existingSecret` | `client.id`, `client.secret` | OIDC client credentials |
-| `webPasswordSecret` | Key named per `webPasswordSecretKey` (default: `password`) | Web UI password file |
+| `webPasswordSecret` | Key named per `webPasswordSecretKey` (default: `server-web-passwd`) | Web UI password file |
 | `tls.existingSecret` | `tls.crt`, `tls.key` | TLS certificate (if not using cert-manager) |
 
 ## Upgrading
@@ -377,7 +487,7 @@ This chart is a standalone replacement for the Kustomize + Flux deployment model
 | Instance `deployment-patch.yaml` | Values: `resources`, `nodeSelector`, `securityContext`, `extraEnv`, etc. |
 | Instance `service-patch.yaml` | Values: `service.*` |
 | Instance `cert-patch.yaml` | Values: `certificate.dnsNames` |
-| Instance PVC patches | Values: `cache.storageType`, `logging.*`, `namespaceKey.*`, `lotman.*` |
+| Instance PVC patches | Values: `cache.type`, `cache.hostPath.path`, `cache.pvc.*`, `logging.*`, `issuerKey.*`, `lotman.*` |
 
 ## License
 
