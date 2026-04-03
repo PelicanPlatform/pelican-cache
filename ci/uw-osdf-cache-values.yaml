@@ -112,6 +112,4 @@ securityContext:
   capabilities:
     add: ["SYS_PTRACE"]
 
-extraEnv:
-  - name: XRD_CURLDISABLEX509
-    value: "1"
+extraEnv: []

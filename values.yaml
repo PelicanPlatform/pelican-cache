@@ -217,8 +217,6 @@ securityContext: {}
 
 # -- Extra environment variables for the pelican-cache container
 extraEnv: []
-#   - name: XRD_CURLDISABLEX509
-#     value: "1"
 
 # -- Extra volumes to add to the pod
 extraVolumes: []
