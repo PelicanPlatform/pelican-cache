@@ -24,5 +24,7 @@ data:
     Logging:
       LogLocation: "/var/log/pelican/pelican.log"
 
+    Topology.DisableCacheX509: true
+
   50-instance.yaml: |
 {{- include "pelican-cache.instanceConfig" . | nindent 4 }}
