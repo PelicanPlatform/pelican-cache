@@ -65,11 +65,12 @@ The chart deploys a single Pod with up to three containers:
 
 ### Pelican Configuration Layering
 
-Pelican supports loading configuration from multiple files via `ConfigLocations`. This chart now generates a single ConfigMap that contains both layers:
+Pelican supports loading configuration from multiple files via `ConfigLocations`. This chart generates a single ConfigMap (`pelican-config`) containing two files:
 
-1. **`pelican-config`** (mounted at `/etc/pelican/pelican.yaml` and `/etc/pelican/config.d/50-instance.yaml`) — Includes fixed infrastructure config (`pelican.yaml`) and generated instance settings (`50-instance.yaml`) from your values: federation URL, hostname, cache tuning, OIDC, Lotman, logging levels, XRootD settings, and any `extraPelicanConfig`.
+- **`pelican.yaml`** — Fixed infrastructure config (storage paths, ports, TLS paths).
+- **`50-instance.yaml`** — Generated from your values: federation URL, hostname, cache tuning, OIDC, Lotman, logging levels, XRootD settings, and any `extraPelicanConfig`.
 
-Pelican merges these in order, with later files taking precedence.
+Both are mounted under `/etc/pelican/` and Pelican merges them in order, with later files taking precedence.
 
 ### Storage
 
@@ -78,7 +79,7 @@ The chart manages several persistent volumes:
 | Volume | Purpose | Backing |
 |---|---|---|
 | Cache data | XRootD file cache | PVC or hostPath (`cache.type`) |
-| Logging | Pelican log files | PVC (always) |
+| Logging | Pelican log files | Dedicated PVC (default) or shared with cache data (`logging.persistence.separateVolume`) |
 | Issuer key | Pelican issuer/signing key | PVC or existing Secret (`issuerKey.type`) |
 | Lotman data | Lot-based storage management | PVC (when `lotman.enabled`) |
 
@@ -239,6 +240,8 @@ For details on `Files*Size` parameters, see the [XRootD PFC documentation](https
 | `logrotate.resources.requests.memory` | `500M` | Logrotate memory request |
 | `logrotate.resources.limits.cpu` | `2` | Logrotate CPU limit |
 | `logrotate.resources.limits.memory` | `2G` | Logrotate memory limit |
+| `logrotate.size` | `500M` | Log file size threshold that triggers rotation |
+| `logrotate.rotate` | `10` | Number of rotated log files to keep |
 
 ### Optional Components
 
@@ -287,6 +290,7 @@ through normal chart values. Prefer regular chart parameters when possible.
 | `extraVolumes` | `[]` | Extra volumes for the pod |
 | `extraVolumeMounts` | `[]` | Extra volume mounts for the cache container |
 | `podAnnotations` | `{}` | Extra pod annotations |
+| `podSecurityContext` | `{}` | Pod-level security context (fsGroup, runAsUser, etc.) |
 | `securityContext` | `{}` | Security context for the cache container |
 
 ## Examples
@@ -305,6 +309,10 @@ cache:
 
 logging:
   persistence:
+    storageClass: standard
+
+issuerKey:
+  pvc:
     storageClass: standard
 
 webPassword:
@@ -385,18 +393,17 @@ securityContext:
   capabilities:
     add: ["SYS_PTRACE"]
 
-extraEnv:
-  - name: XRD_CURLDISABLEX509
-    value: "1"
 ```
 
 ### Non-OSDF Federation
 
 ```yaml
 serverHostname: my-cache.example.com
+sitename: MY_CACHE
 
 federation:
   discoveryUrl: "https://my-federation.example.com"
+  label: my-federation
 
 image:
   # Use the generic Pelican cache image instead of the OSDF-specific one
@@ -406,6 +413,8 @@ cache:
   type: pvc
   pvc:
     storageClass: local-nvme
+
+# ...plus issuerKey, logging, and webPassword settings as shown above
 ```
 
 ## Validation Requirements
@@ -435,8 +444,15 @@ The chart enforces the following validation rules at render time to ensure a val
 **Web UI:**
 - `webPassword.existingSecret` must be nonempty
 
-**Federation:**
+**Site Identity:**
 - `serverHostname` must be nonempty
+- `sitename` must be nonempty
+
+**TLS:**
+- `tls.certManager.enabled` and `tls.existingSecret` cannot both be set
+- When `tls.certManager.enabled` is false, `tls.existingSecret` must be nonempty
+
+**Federation:**
 - If `federation.discoveryUrl` or `federation.label` match a known federation pair (OSDF or OSDF-ITB), both must be set consistently
 
 ## Secrets Management
@@ -466,7 +482,7 @@ The `Recreate` deployment strategy is used (not `RollingUpdate`) because the cac
 
 ```bash
 # Lint the chart
-helm lint . --set serverHostname=test.example.com
+helm lint . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set issuerKey.pvc.storageClass=std --set webPassword.existingSecret=pw
 
 # Render templates locally
 helm template my-cache . -f ci/uw-osdf-cache-values.yaml
@@ -474,21 +490,6 @@ helm template my-cache . -f ci/uw-osdf-cache-values.yaml
 # Diff against a live release
 helm diff upgrade my-cache . -f my-values.yaml
 ```
-
-## Relationship to tiger-osg-config
-
-This chart is a standalone replacement for the Kustomize + Flux deployment model used in [opensciencegrid/tiger-osg-config](https://github.com/opensciencegrid/tiger-osg-config). The `ci/uw-osdf-cache-values.yaml` file demonstrates a 1:1 mapping from the `uw-osdf-cache` Kustomize overlays to Helm values.
-
-| Kustomize layer | Helm equivalent |
-|---|---|
-| `base/pelican-cache/pelican.yaml` | `configmap-pelican.yaml` template (fixed) |
-| `base/pelican-cache/deployment.yaml` | `deployment.yaml` template |
-| `base/osdf-pelican-cache/10-osdf.yaml` | `federation.discoveryUrl` value |
-| Instance `50-instance.yaml` | Generated by `_helpers.tpl` and stored in `configmap-pelican.yaml` |
-| Instance `deployment-patch.yaml` | Values: `resources`, `nodeSelector`, `securityContext`, `extraEnv`, etc. |
-| Instance `service-patch.yaml` | Values: `service.*` |
-| Instance `cert-patch.yaml` | Values: `tls.certManager.dnsNames` |
-| Instance PVC patches | Values: `cache.type`, `cache.hostPath.path`, `cache.pvc.*`, `logging.*`, `issuerKey.*`, `lotman.*` |
 
 ## License
 
