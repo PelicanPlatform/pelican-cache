@@ -1,3 +1,4 @@
+{{- if not .Values.hostNetwork }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -21,7 +22,7 @@ spec:
   ports:
     - name: pelican
       protocol: TCP
-      port: 8443
+      port: {{ .Values.server.cachePort }}
       targetPort: pelican
     {{- if .Values.cvmfsRedirector.enabled }}
     - name: pelican-cvmfs
@@ -31,5 +32,6 @@ spec:
     {{- end }}
     - name: pelican-webui
       protocol: TCP
-      port: 443
+      port: {{ .Values.server.webPort }}
       targetPort: pelican-webui
+    {{- end }}

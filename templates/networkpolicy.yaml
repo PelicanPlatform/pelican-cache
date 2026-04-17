@@ -1,4 +1,4 @@
-{{- if .Values.networkPolicy.enabled }}
+{{- if and .Values.networkPolicy.enabled (not .Values.hostNetwork) }}
 kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1
 metadata:
@@ -16,13 +16,13 @@ spec:
     - from:
       ports:
         - protocol: TCP
-          port: 8443
+          port: {{ .Values.server.cachePort }}
         {{- if .Values.cvmfsRedirector.enabled }}
         - protocol: TCP
           port: 8000
         {{- end }}
         - protocol: TCP
-          port: 443
+          port: {{ .Values.server.webPort }}
   egress:
     - {}
 {{- end }}

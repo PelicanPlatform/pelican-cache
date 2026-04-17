@@ -224,7 +224,7 @@ For details on `Files*Size` parameters, see the [XRootD PFC documentation](https
 
 | Parameter | Default | Description |
 |---|---|---|
-| `service.type` | `LoadBalancer` | Service type |
+| `service.type` | `LoadBalancer` | Service type (ignored when `hostNetwork` is enabled) |
 | `service.loadBalancerIP` | `""` | Request a specific LB IP |
 | `service.externalTrafficPolicy` | `Local` | Traffic policy |
 | `service.annotations` | `{}` | Extra annotations (external-dns, metallb, etc.) |
@@ -248,6 +248,9 @@ For details on `Files*Size` parameters, see the [XRootD PFC documentation](https
 | Parameter | Default | Description |
 |---|---|---|
 | `sleep` | `false` | Debug mode: run `sleep infinity` in the `pelican-cache` container instead of starting the cache process |
+| `hostNetwork` | `false` | Use host networking (`spec.hostNetwork=true`) to bind directly to node IP. When enabled, no Service or NetworkPolicy is created. |
+| `server.cachePort` | `8443` | Cache port exposed by Pelican and used by container/service/network policy mappings |
+| `server.webPort` | `443` | Web UI port exposed by Pelican and container port mapping |
 | `cvmfsRedirector.enabled` | `false` | Enable CVMFS port redirector sidecar |
 | `lotman.enabled` | `false` | Enable Lotman (lot-based storage management) |
 | `lotman.pvc.existingClaim` | `""` | Existing Lotman PVC name (if set, ignores `storageClass` and `size`) |
@@ -271,7 +274,7 @@ through normal chart values. Prefer regular chart parameters when possible.
 
 | Parameter | Default | Description |
 |---|---|---|
-| `networkPolicy.enabled` | `true` | Create a NetworkPolicy |
+| `networkPolicy.enabled` | `true` | Create a NetworkPolicy (ignored when `hostNetwork` is enabled) |
 
 ### Scheduling (customization optional)
 

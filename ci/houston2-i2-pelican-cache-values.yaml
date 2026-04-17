@@ -43,9 +43,12 @@ tls:
     enabled: false
   existingSecret: houston2-i2-certs
 
-# hostNetwork: true binds directly to the node's network and disables the Service.
 hostNetwork: true
 
+server:
+  webPort: 8444
+
+# Keep network policy disabled for this hostNetwork-based profile.
 networkPolicy:
   enabled: false
 
@@ -66,23 +69,29 @@ logging:
   cache:
     Pss: warn
     Scitokens: warn
-  origin:
-    Scitokens: warn
-
-server:
-  webPort: 8444
+  # NOTE: logging.origin and server.webPort from the real deployment are not
+  # supported as first-class chart values; use extraPelicanConfig if needed.
 
 oidc:
   enabled: true
   existingSecret: nrp-oidc-client-secret
 
-adminUsers: "http://cilogon.org/serverE/users/133679 http://cilogon.org/serverA/users/10832 http://cilogon.org/serverA/users/21441 http://cilogon.org/serverA/users/46022246 http://cilogon.org/serverA/users/9265706 http://cilogon.org/serverE/users/57152 http://cilogon.org/serverE/users/130835 http://cilogon.org/serverE/users/245993 http://cilogon.org/serverB/users/51444962"
+adminUsers:
+  - "http://cilogon.org/serverE/users/133679"
+  - "http://cilogon.org/serverA/users/10832"
+  - "http://cilogon.org/serverA/users/21441"
+  - "http://cilogon.org/serverA/users/46022246"
+  - "http://cilogon.org/serverA/users/9265706"
+  - "http://cilogon.org/serverE/users/57152"
+  - "http://cilogon.org/serverE/users/130835"
+  - "http://cilogon.org/serverE/users/245993"
+  - "http://cilogon.org/serverB/users/51444962"
 
 webPassword:
   existingSecret: osdf-web-pass-nrp
   key: server-web-passwd
 
-xrootdSitename: HOUSTON2_INTERNET2_OSDF_CACHE
+# NOTE: xrootdSitename is not a chart value; the chart uses "sitename" instead.
 
 xrootd:
   # The real deployment uses an external ConfigMap (xrootdtrt-cfg) for xrootd config.
@@ -102,9 +111,8 @@ securityContext:
   capabilities:
     add: ["SYS_PTRACE"]
 
-extraEnv:
-  - name: XRD_CURLDISABLEX509
-    value: "1"
+# NOTE: XRD_CURLDISABLEX509 is already set unconditionally by the chart's
+# deployment template, so it does not need to be repeated in extraEnv.
 
 # Convert remaining env-var config that doesn't have first-class values.yaml
 # knobs into proper YAML config.
@@ -114,6 +122,10 @@ extraPelicanConfig:
   IssuerKey: "/cache/privpelican/issuer.pem"
   Logging:
     LogLocation: "/cache/pelican/pelican.log"
+    Origin:
+      Scitokens: warn
+  XrootD:
+    ConfigFile: "/etc/pelican/xrootdap/xrootdtrt.cfg"
   Shoveler:
     Enable: true
     Topic: ""

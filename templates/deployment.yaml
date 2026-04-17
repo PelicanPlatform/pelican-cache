@@ -22,6 +22,7 @@ spec:
         {{- include "pelican-cache.labels" . | nindent 8 }}
     spec:
       enableServiceLinks: false
+      hostNetwork: {{ .Values.hostNetwork }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -64,10 +65,10 @@ spec:
             {{- end }}
           ports:
             - name: pelican
-              containerPort: 8443
+              containerPort: {{ .Values.server.cachePort }}
               protocol: TCP
             - name: pelican-webui
-              containerPort: 443
+              containerPort: {{ .Values.server.webPort }}
               protocol: TCP
           volumeMounts:
             - name: default-config

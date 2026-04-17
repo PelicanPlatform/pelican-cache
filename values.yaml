@@ -9,6 +9,13 @@ replicaCount: 1
 # -- (Required) External FQDN of the cache server
 serverHostname: ""
 
+# -- Server process settings
+server:
+  # -- Cache service port
+  cachePort: 8443
+  # -- Web UI HTTPS port
+  webPort: 443
+
 # -- (Required) Site name reported to the federation
 sitename: ""
 
@@ -192,6 +199,9 @@ sleep: false
 # -- Network policy
 networkPolicy:
   enabled: true
+
+# -- Use host networking for the pod (matches legacy deployments that bind directly to node IP)
+hostNetwork: false
 
 # -- Node selector for pod scheduling
 nodeSelector: {}

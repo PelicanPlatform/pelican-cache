@@ -14,10 +14,10 @@ data:
 
     Cache:
       StorageLocation: /cache
-      Port: 8443
+      Port: {{ .Values.server.cachePort }}
 
     Server:
-      WebPort: 443
+      WebPort: {{ .Values.server.webPort }}
       TlsCertificate: "/etc/pelican/cert-orig/tls.crt"
       TlsKey: "/etc/pelican/cert-orig/tls.key"
 
