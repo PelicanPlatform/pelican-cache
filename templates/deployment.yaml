@@ -57,12 +57,10 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- if .Values.extraEnv }}
           env:
-            - name: XRD_CURLDISABLEX509
-              value: "1"
-            {{- if .Values.extraEnv }}
             {{- toYaml .Values.extraEnv | nindent 12 }}
-            {{- end }}
+          {{- end }}
           ports:
             - name: pelican
               containerPort: {{ .Values.server.cachePort }}
