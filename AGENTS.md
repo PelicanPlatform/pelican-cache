@@ -16,9 +16,9 @@ manifests/tiger/osdf-prod/uw-osdf-cache/
 
 That deployment uses a **three-layer Kustomize inheritance chain**:
 
-1. `manifests/base/pelican-cache/` — Generic Pelican cache base (Deployment with 3 containers: `pelican-cache`, `cvmfs-redirector`, `logrotate`; Service; 3 PVCs; NetworkPolicy; cert-manager Certificate; ConfigMaps for pelican.yaml and logrotate)
+1. `manifests/base/pelican-cache/` — Generic Pelican cache base (Deployment with 2 containers: `pelican-cache`, `logrotate`; Service; 3 PVCs; NetworkPolicy; cert-manager Certificate; ConfigMaps for pelican.yaml and logrotate)
 2. `manifests/base/osdf-pelican-cache/` — OSDF overlay (adds `osdf-` namePrefix, `pelicanplatform.org/federation: https://osg-htc.org` label, sets `Federation.DiscoveryUrl` to `https://osg-htc.org`, replaces overlay-config emptyDir with a ConfigMap)
-3. `manifests/tiger/osdf-prod/uw-osdf-cache/` — Instance overlay (pins images, pins to a specific node, deletes cvmfs-redirector, replaces cache-data PVC with hostPath, replaces namespace-key PVC with a Secret from SealedSecret, adds lotman/OIDC/web-password volumes, sets heavy resources and cache tuning)
+3. `manifests/tiger/osdf-prod/uw-osdf-cache/` — Instance overlay (pins images, pins to a specific node, replaces cache-data PVC with hostPath, replaces namespace-key PVC with a Secret from SealedSecret, adds lotman/OIDC/web-password volumes, sets heavy resources and cache tuning)
 
 This chart collapses all three layers into parameterized Helm templates.
 
@@ -45,7 +45,7 @@ pelican-cache/
     │                                    #   - pelican-cache.instanceConfig (generates 50-instance.yaml)
     │                                    #   - pelican-cache.shouldRenderPvc (avoids PVC adoption conflicts)
     │                                    #   - pelican-cache.validateRequiredValues
-    ├── deployment.yaml                  # Deployment: 2-3 containers, conditional volumes
+    ├── deployment.yaml                  # Deployment: 2 containers, conditional volumes
     ├── service.yaml                     # LoadBalancer Service
     ├── networkpolicy.yaml               # NetworkPolicy (conditional)
     ├── certificate.yaml                 # cert-manager Certificate (conditional)
@@ -76,23 +76,21 @@ pelican-cache/
    pattern forces the user to choose WHERE to persist and ensures all required fields for that branch are explicitly set,
    preventing silent misconfiguration.
 
-4. **CVMFS redirector defaults to off**: The original base includes it, but the uw-osdf-cache (and most modern deployments) delete it. Defaulting to off matches the common case.
+4. **`Recreate` strategy**: The Deployment uses `Recreate` (not `RollingUpdate`) because Pelican holds an exclusive lock on its cache data directory.
 
 5. **Public service exposure by default**: `service.type` defaults to `LoadBalancer` intentionally. This cache is expected to be publicly reachable; `ClusterIP` is not useful for the primary deployment target, and routing through Ingress adds an extra hop that can hurt throughput and latency.
 
-6. **`Recreate` strategy**: The Deployment uses `Recreate` (not `RollingUpdate`) because Pelican holds an exclusive lock on its cache data directory.
+6. **ConfigMap checksum annotation**: The Deployment template includes a `sha256sum` checksum of the Pelican ConfigMap as a pod annotation (`checksum/pelican-config`), so Pelican config changes trigger automatic rollouts.
 
-7. **ConfigMap checksum annotation**: The Deployment template includes a `sha256sum` checksum of the Pelican ConfigMap as a pod annotation (`checksum/pelican-config`), so Pelican config changes trigger automatic rollouts.
+7. **Open ingress policy by default**: The NetworkPolicy allows ingress from any source (on explicit service ports) intentionally. This cache serves federation clients globally, so restrictive source allowlists are not a sensible default.
 
-8. **Open ingress policy by default**: The NetworkPolicy allows ingress from any source (on explicit service ports) intentionally. This cache serves federation clients globally, so restrictive source allowlists are not a sensible default.
-
-9. **Template-time validation**: The chart enforces required values at render time via the `pelican-cache.validateRequiredValues` helper in `_helpers.tpl`. This ensures:
+8. **Template-time validation**: The chart enforces required values at render time via the `pelican-cache.validateRequiredValues` helper in `_helpers.tpl`. This ensures:
    - `serverHostname` is set
   - Storage configurations are complete for their type (e.g., `cache.pvc.storageClass` required for new PVCs, but not if using `cache.pvc.existingClaim`)
    - Namespace key and logging storage configured appropriately
    - Optional features (Lotman, OIDC) have their required secrets/storage when enabled
 
-10. **Safe PVC rendering with `lookup`**: The PVC templates use the `pelican-cache.shouldRenderPvc` helper to render only when a PVC is absent or already managed by the same Helm release. This avoids Helm trying to adopt unrelated pre-existing PVCs while still allowing upgrades to manage release-owned PVC metadata.
+9. **Safe PVC rendering with `lookup`**: The PVC templates use the `pelican-cache.shouldRenderPvc` helper to render only when a PVC is absent or already managed by the same Helm release. This avoids Helm trying to adopt unrelated pre-existing PVCs while still allowing upgrades to manage release-owned PVC metadata.
 
 ## Pelican-Specific Knowledge
 
@@ -101,7 +99,6 @@ pelican-cache/
 - **Federation Discovery URL** (`https://osg-htc.org`) tells Pelican where to find the OSDF director and registry.
 - **IssuerKey** is a JWK used to sign tokens. The chart expects operators to pre-generate it and provide it via an existing Secret.
 - **Lotman** = lot-based storage management (experimental). Manages disk quotas per "lot."
-- **CVMFS port redirector** = a sidecar that redirects legacy CVMFS clients (port 8000) to the Pelican cache.
 - **Cache.StorageLocation**: In Pelican 7.12+, `StorageLocation` is the preferred cache path setting.
 - **`Cache.HighWaterMark` / `LowWaterMark`**: XRootD's cache eviction thresholds. When total disk usage crosses the high watermark, files are evicted until it drops below the low watermark.
 - **`Files*Size` parameters**: Fine-grained diskusage tracking specific to the mount where cache data lives. `FilesMaxSize` must be lower than the low water mark.

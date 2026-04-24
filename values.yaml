@@ -45,18 +45,6 @@ logrotate:
   size: 500M
   rotate: 10
 
-# -- CVMFS port redirector sidecar
-cvmfsRedirector:
-  # -- Enable the CVMFS port redirector container
-  enabled: false
-  image:
-    repository: hub.opensciencegrid.org/pelican_platform/port-redirector
-    tag: latest
-  resources:
-    requests:
-      memory: "1Gi"
-      cpu: "1"
-
 # -- Cache data storage configuration
 # -- You must choose between "pvc" and "hostPath" to determine where to
 # -- persist, and then configure the details in the appropriate subsections.

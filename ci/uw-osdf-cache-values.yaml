@@ -11,9 +11,6 @@ image:
   repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
   tag: "v7.23.0"
 
-cvmfsRedirector:
-  enabled: false
-
 cache:
   type: hostPath
   hostPath:

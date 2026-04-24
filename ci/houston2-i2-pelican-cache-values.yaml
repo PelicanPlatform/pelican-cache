@@ -12,9 +12,6 @@ image:
   tag: "v7.22.0"
   pullPolicy: IfNotPresent
 
-cvmfsRedirector:
-  enabled: false
-
 # The real deployment uses an existing PVC (pvc-dtn-pas.hous.net.internet2.edu).
 cache:
   type: hostPath

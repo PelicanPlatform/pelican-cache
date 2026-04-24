@@ -24,12 +24,6 @@ spec:
       protocol: TCP
       port: {{ .Values.server.cachePort }}
       targetPort: pelican
-    {{- if .Values.cvmfsRedirector.enabled }}
-    - name: pelican-cvmfs
-      protocol: TCP
-      port: 8000
-      targetPort: pelican-cvmfs
-    {{- end }}
     - name: pelican-webui
       protocol: TCP
       port: {{ .Values.server.webPort }}

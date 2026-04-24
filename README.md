@@ -55,13 +55,12 @@ See [ci/uw-osdf-cache-values.yaml](ci/uw-osdf-cache-values.yaml) for a complete 
 
 ## Architecture
 
-The chart deploys a single Pod with up to three containers:
+The chart deploys a single Pod with two containers:
 
 | Container | Purpose | Optional |
 |---|---|---|
 | `pelican-cache` | Main Pelican cache process | No |
 | `logrotate` | Rotates Pelican log files | No |
-| `cvmfs-redirector` | CVMFS port redirector sidecar | Yes (`cvmfsRedirector.enabled`) |
 
 ### Pelican Configuration Layering
 
@@ -233,7 +232,6 @@ Note: When `hostNetwork` is enabled, a Service does not get created, in which ca
 | `hostNetwork` | `false` | Use host networking (`spec.hostNetwork=true`) to bind directly to node IP. When enabled, no Service or NetworkPolicy is created. |
 | `server.cachePort` | `8443` | Cache port exposed by Pelican and used by container/service/network policy mappings |
 | `server.webPort` | `443` | Web UI port exposed by Pelican and container port mapping |
-| `cvmfsRedirector.enabled` | `false` | Enable CVMFS port redirector sidecar |
 | `lotman.enabled` | `false` | Enable Lotman (lot-based storage management) |
 | `lotman.pvc.existingClaim` | `""` | Existing Lotman PVC name (if set, ignores `storageClass` and `size`) |
 | `lotman.pvc.storageClass` | `""` | StorageClass for new Lotman PVC (required if `existingClaim` is not set and `enabled=true`) |

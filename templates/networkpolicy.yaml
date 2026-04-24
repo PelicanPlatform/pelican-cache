@@ -17,10 +17,6 @@ spec:
       ports:
         - protocol: TCP
           port: {{ .Values.server.cachePort }}
-        {{- if .Values.cvmfsRedirector.enabled }}
-        - protocol: TCP
-          port: 8000
-        {{- end }}
         - protocol: TCP
           port: {{ .Values.server.webPort }}
   egress:

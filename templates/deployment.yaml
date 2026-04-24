@@ -123,20 +123,6 @@ its own CA there.  So we use a different directory here and in the Pelican confi
             {{- toYaml . | nindent 12 }}
             {{- end }}
 
-        {{- if .Values.cvmfsRedirector.enabled }}
-        # ---- CVMFS port redirector sidecar ----
-        - name: cvmfs-redirector
-          image: "{{ .Values.cvmfsRedirector.image.repository }}:{{ .Values.cvmfsRedirector.image.tag }}"
-          imagePullPolicy: Always
-          ports:
-            - name: pelican-cvmfs
-              containerPort: 8000
-          {{- with .Values.cvmfsRedirector.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-        {{- end }}
-
         # ---- Logrotate sidecar ----
         - name: logrotate
           image: "{{ .Values.logrotate.image.repository }}:{{ .Values.logrotate.image.tag }}"
