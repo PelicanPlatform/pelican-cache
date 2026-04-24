@@ -202,7 +202,7 @@ not configurable.
 | `cache.concurrency` | `""` | Max concurrent requests (e.g. `240` — guidance: 10× core count) |
 | `cache.highWaterMark` | `""` | Eviction high watermark (e.g. `27000g`) |
 | `cache.lowWaterMark` | `""` | Eviction low watermark (e.g. `25000g`) |
-| `cache.filesMaxSize` | `""` | XRootD diskusage max tracked size. Must be < low watermark. |
+| `cache.filesMaxSize` | `""` | XRootD diskusage max tracked size. Must be &lt; low watermark. |
 | `cache.filesNominalSize` | `""` | XRootD diskusage nominal tracked size |
 | `cache.filesBaseSize` | `""` | XRootD diskusage base tracked size |
 
@@ -428,36 +428,9 @@ cache:
 
 The chart enforces the following validation rules at render time to ensure a valid configuration:
 
-**Storage:**
-- If `cache.type` is `pvc`:
-  - If `cache.pvc.existingClaim` is empty, `cache.pvc.storageClass` must be nonempty
-  - If `cache.pvc.existingClaim` is set, `storageClass` and `size` are ignored
-- If `cache.type` is `hostPath`:
-  - `cache.hostPath.path` must be nonempty
-
 **Issuer Key:**
 - If `issuerKey.type` is `pvc`, `issuerKey.pvc.storageClass` must be nonempty
 - If `issuerKey.type` is `existingSecret`, `issuerKey.existingSecret` must be nonempty
-
-**Logging:**
-- If `logging.persistence.separateVolume` is `true` and `logging.persistence.existingClaim` is empty, `logging.persistence.storageClass` must be nonempty
-
-**Lotman:**
-- If `lotman.enabled` is `true` and `lotman.pvc.existingClaim` is empty, `lotman.pvc.storageClass` must be nonempty
-
-**OIDC:**
-- If `oidc.enabled` is `true`, `oidc.existingSecret` must be nonempty
-
-**Web UI:**
-- `webPassword.existingSecret` must be nonempty
-
-**Site Identity:**
-- `serverHostname` must be nonempty
-- `sitename` must be nonempty
-
-**TLS:**
-- `tls.certManager.enabled` and `tls.existingSecret` cannot both be set
-- When `tls.certManager.enabled` is false, `tls.existingSecret` must be nonempty
 
 **Federation:**
 - If `federation.discoveryUrl` or `federation.label` match a known federation pair (OSDF or OSDF-ITB), both must be set consistently
