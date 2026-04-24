@@ -6,7 +6,6 @@ sitename: HOUSTON2_INTERNET2_OSDF_CACHE
 
 federation:
   discoveryUrl: "https://osg-htc.org"
-  label: osdf
 
 image:
   repository: hub.opensciencegrid.org/pelican_platform/osdf-cache

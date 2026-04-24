@@ -6,7 +6,6 @@ sitename: ITB-OSDF-PELICAN-CACHE
 
 federation:
   discoveryUrl: "https://osdf-itb.osg-htc.org"
-  label: osdf-itb
 
 image:
   repository: hub.opensciencegrid.org/pelican_platform/osdf-cache

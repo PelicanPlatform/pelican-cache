@@ -17,7 +17,7 @@ manifests/tiger/osdf-prod/uw-osdf-cache/
 That deployment uses a **three-layer Kustomize inheritance chain**:
 
 1. `manifests/base/pelican-cache/` — Generic Pelican cache base (Deployment with 3 containers: `pelican-cache`, `cvmfs-redirector`, `logrotate`; Service; 3 PVCs; NetworkPolicy; cert-manager Certificate; ConfigMaps for pelican.yaml and logrotate)
-2. `manifests/base/osdf-pelican-cache/` — OSDF overlay (adds `osdf-` namePrefix, `federation: osdf` label, sets `Federation.DiscoveryUrl` to `https://osg-htc.org`, replaces overlay-config emptyDir with a ConfigMap)
+2. `manifests/base/osdf-pelican-cache/` — OSDF overlay (adds `osdf-` namePrefix, `pelicanplatform.org/federation: https://osg-htc.org` label, sets `Federation.DiscoveryUrl` to `https://osg-htc.org`, replaces overlay-config emptyDir with a ConfigMap)
 3. `manifests/tiger/osdf-prod/uw-osdf-cache/` — Instance overlay (pins images, pins to a specific node, deletes cvmfs-redirector, replaces cache-data PVC with hostPath, replaces namespace-key PVC with a Secret from SealedSecret, adds lotman/OIDC/web-password volumes, sets heavy resources and cache tuning)
 
 This chart collapses all three layers into parameterized Helm templates.
@@ -44,7 +44,7 @@ pelican-cache/
     │                                    #   - pelican-cache.tlsSecretName
     │                                    #   - pelican-cache.instanceConfig (generates 50-instance.yaml)
     │                                    #   - pelican-cache.shouldRenderPvc (avoids PVC adoption conflicts)
-    │                                    #   - pelican-cache.validateFederation / validateRequiredValues
+    │                                    #   - pelican-cache.validateRequiredValues
     ├── deployment.yaml                  # Deployment: 2-3 containers, conditional volumes
     ├── service.yaml                     # LoadBalancer Service
     ├── networkpolicy.yaml               # NetworkPolicy (conditional)
@@ -91,7 +91,6 @@ pelican-cache/
   - Storage configurations are complete for their type (e.g., `cache.pvc.storageClass` required for new PVCs, but not if using `cache.pvc.existingClaim`)
    - Namespace key and logging storage configured appropriately
    - Optional features (Lotman, OIDC) have their required secrets/storage when enabled
-   - Federation label/URL consistency (OSDF and OSDF-ITB have defined pairs)
 
 10. **Safe PVC rendering with `lookup`**: The PVC templates use the `pelican-cache.shouldRenderPvc` helper to render only when a PVC is absent or already managed by the same Helm release. This avoids Helm trying to adopt unrelated pre-existing PVCs while still allowing upgrades to manage release-owned PVC metadata.
 
@@ -178,7 +177,6 @@ The chart enforces these rules at render time:
 | Always | `sitename` must be nonempty |
 | Always | `webPassword.existingSecret` must be nonempty |
 | Always | `serverHostname` must be nonempty |
-| Federation consistency | If `federation.discoveryUrl` or `federation.label` match OSDF or OSDF-ITB, both must pair correctly |
 | TLS consistency | `tls.certManager.enabled` and `tls.existingSecret` cannot both be set |
 | TLS completeness | When `tls.certManager.enabled` is false, `tls.existingSecret` must be nonempty |
 

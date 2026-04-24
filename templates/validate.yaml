@@ -2,5 +2,4 @@
 This template exists solely to trigger validation checks on every render.
 It produces no Kubernetes resources — the file is empty after rendering.
 */}}
-{{- include "pelican-cache.validateFederation" . }}
 {{- include "pelican-cache.validateRequiredValues" . }}

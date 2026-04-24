@@ -35,9 +35,7 @@ Common labels
 {{- define "pelican-cache.labels" -}}
 helm.sh/chart: {{ include "pelican-cache.chart" . }}
 {{ include "pelican-cache.selectorLabels" . }}
-{{- if .Values.federation.label }}
-federation: {{ .Values.federation.label }}
-{{- end }}
+pelicanplatform.org/federation: {{ include "pelican-cache.sanitizedFederationUrl" . | quote }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -50,6 +48,21 @@ Selector labels
 {{- define "pelican-cache.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "pelican-cache.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Sanitize federation discovery URL for use as a label value.
+
+Kubernetes label values must be alphanumeric or contain `-`, `_`, or `.`.
+This helper:
+1. Strips any URI scheme (e.g., `https://`, `http://`, `ftp://`, etc.)
+2. Replaces `/` and `:` with `_`
+*/}}
+{{- define "pelican-cache.sanitizedFederationUrl" -}}
+{{- $url := .Values.federation.discoveryUrl }}
+{{- $stripped := regexReplaceAll "^[^:]+://" $url "" -}}
+{{- $stripped := regexReplaceAll "[^A-Za-z0-9._-]" $stripped "_" -}}
+{{- $stripped }}
 {{- end }}
 
 {{/*
@@ -68,7 +81,6 @@ Generate the Pelican instance configuration (50-instance.yaml content).
 This is the user-configurable layer that Pelican loads from /etc/pelican/config.d/.
 */}}
 {{- define "pelican-cache.instanceConfig" -}}
-{{- include "pelican-cache.validateFederation" . }}
 ---
 Federation:
   DiscoveryUrl: {{ .Values.federation.discoveryUrl | quote }}
@@ -169,45 +181,6 @@ true
 false
 {{- end -}}
 {{- end -}}
-{{- end }}
-
-{{/*
-Validate that federation.discoveryUrl and federation.label are consistent.
-The two known federations each require a specific pairing:
-  - https://osg-htc.org           <-> osdf
-  - https://osdf-itb.osg-htc.org  <-> osdf-itb
-If either value in a pair is set to one of the known values, the other must
-match exactly.
-*/}}
-{{- define "pelican-cache.validateFederation" -}}
-{{- $url   := .Values.federation.discoveryUrl | default "" }}
-{{- $label := .Values.federation.label        | default "" }}
-
-{{- /* url → required label */}}
-{{- if eq $url "https://osg-htc.org" }}
-  {{- if and $label (ne $label "osdf") }}
-    {{- fail (printf "federation.discoveryUrl is %q but federation.label is %q — it must be \"osdf\"" $url $label) }}
-  {{- end }}
-{{- end }}
-
-{{- if eq $url "https://osdf-itb.osg-htc.org" }}
-  {{- if and $label (ne $label "osdf-itb") }}
-    {{- fail (printf "federation.discoveryUrl is %q but federation.label is %q — it must be \"osdf-itb\"" $url $label) }}
-  {{- end }}
-{{- end }}
-
-{{- /* label → required url */}}
-{{- if eq $label "osdf" }}
-  {{- if and $url (ne $url "https://osg-htc.org") }}
-    {{- fail (printf "federation.label is %q but federation.discoveryUrl is %q — it must be \"https://osg-htc.org\"" $label $url) }}
-  {{- end }}
-{{- end }}
-
-{{- if eq $label "osdf-itb" }}
-  {{- if and $url (ne $url "https://osdf-itb.osg-htc.org") }}
-    {{- fail (printf "federation.label is %q but federation.discoveryUrl is %q — it must be \"https://osdf-itb.osg-htc.org\"" $label $url) }}
-  {{- end }}
-{{- end }}
 {{- end }}
 
 {{/*

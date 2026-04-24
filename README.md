@@ -157,17 +157,8 @@ and specify that as `webPassword.existingSecret`.
 | Parameter | Default | Description |
 |---|---|---|
 | `federation.discoveryUrl` | `https://osg-htc.org` | Federation discovery URL. Change for non-OSDF or ITB. |
-| `federation.label` | `osdf` | Resource label indicating the federation. This must match the discovery URL when set to known values. |
 
-The federation label and discovery URL have to match for the OSDF and OSDF-ITB federations.
-The valid pairs are:
-
-| discoveryUrl | label |
-|---|---|
-| https://osg-htc.org | osdf |
-| https://osdf-itb.osg-htc.org | osdf-itb |
-
-Checks are not performed for other federations.
+All resources are labelled with `pelicanplatform.org/federation` set to the sanitized value of `federation.discoveryUrl` (scheme and special characters removed).
 The default federation is OSDF so OSDF caches do not need to change this section.
 
 ### Images (customization optional)
@@ -397,7 +388,6 @@ sitename: MY_CACHE
 
 federation:
   discoveryUrl: "https://my-federation.example.com"
-  label: my-federation
 
 image:
   # Use the generic Pelican cache image instead of the OSDF-specific one
@@ -417,9 +407,6 @@ The chart enforces the following validation rules at render time to ensure a val
 
 **Issuer Key:**
 - `issuerKey.existingSecret` must be nonempty
-
-**Federation:**
-- If `federation.discoveryUrl` or `federation.label` match a known federation pair (OSDF or OSDF-ITB), both must be set consistently
 
 ## Secrets Management
 
