@@ -62,14 +62,11 @@ The chart deploys a single Pod with two containers:
 | `pelican-cache` | Main Pelican cache process | No |
 | `logrotate` | Rotates Pelican log files | No |
 
-### Pelican Configuration Layering
+### Pelican Configuration
 
-Pelican supports loading configuration from multiple files via `ConfigLocations`. This chart generates a single ConfigMap (`pelican-config`) containing two files:
+This chart generates a single ConfigMap (`pelican-config`) containing one file:
 
-- **`pelican.yaml`** — Fixed infrastructure config (storage paths, ports, TLS paths).
-- **`50-instance.yaml`** — Generated from your values: federation URL, hostname, cache tuning, OIDC, Lotman, logging levels, XRootD settings, and any `extraPelicanConfig`.
-
-Both are mounted under `/etc/pelican/` and Pelican merges them in order, with later files taking precedence.
+- **`config.yaml`** — Mounted at `/etc/pelican/config.d/config.yaml`. Contains all settings: infrastructure config (storage paths, ports, TLS paths) and user-configurable settings (federation URL, hostname, cache tuning, OIDC, Lotman, logging levels, XRootD settings, and any `extraPelicanConfig`).
 
 ### Storage
 

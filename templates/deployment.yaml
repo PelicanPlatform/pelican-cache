@@ -69,12 +69,9 @@ spec:
               containerPort: {{ .Values.server.webPort }}
               protocol: TCP
           volumeMounts:
-            - name: default-config
-              mountPath: /etc/pelican/pelican.yaml
-              subPath: pelican.yaml
-            - name: default-config
-              mountPath: /etc/pelican/config.d/50-instance.yaml
-              subPath: 50-instance.yaml
+            - name: pelican-config
+              mountPath: /etc/pelican/config.d/config.yaml
+              subPath: config.yaml
             - name: data
               mountPath: /cache
             {{- if .Values.logging.persistence.separateVolume }}
@@ -155,16 +152,13 @@ its own CA there.  So we use a different directory here and in the Pelican confi
                 path: tls.key
                 mode: 0600
 
-        # Pelican configuration (base + instance settings)
-        - name: default-config
+        # Pelican configuration
+        - name: pelican-config
           configMap:
             name: {{ include "pelican-cache.fullname" . }}-pelican-config
             items:
-              - key: pelican.yaml
-                path: pelican.yaml
-                mode: 0644
-              - key: 50-instance.yaml
-                path: 50-instance.yaml
+              - key: config.yaml
+                path: config.yaml
                 mode: 0644
 
         # Logrotate configuration
