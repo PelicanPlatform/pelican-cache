@@ -156,7 +156,7 @@ Your options are:
 
 | Parameter | Default | Description |
 |---|---|---|
-| `adminUsers` | `[]` | List of CILogon admin user identities |
+| `adminUsers` | `[]` | List of OIDC `sub` claims of users that should have admin access |
 | `webPassword.existingSecret` | `""` | Existing Secret for web UI password |
 | `webPassword.key` | `server-web-passwd` | Key within the web password Secret |
 
@@ -222,9 +222,11 @@ For details on `Files*Size` parameters, see the [XRootD PFC documentation](https
 
 ### Service (customization optional)
 
+Note: When `hostNetwork` is enabled, a Service does not get created, in which case these settings have no effect.
+
 | Parameter | Default | Description |
 |---|---|---|
-| `service.type` | `LoadBalancer` | Service type (ignored when `hostNetwork` is enabled) |
+| `service.type` | `LoadBalancer` | Service type |
 | `service.loadBalancerIP` | `""` | Request a specific LB IP |
 | `service.externalTrafficPolicy` | `Local` | Traffic policy |
 | `service.annotations` | `{}` | Extra annotations (external-dns, metallb, etc.) |
@@ -272,9 +274,11 @@ through normal chart values. Prefer regular chart parameters when possible.
 
 ### Network Policy
 
+Note: When `hostNetwork` is enabled, a NetworkPolicy does not get created, regardless of the setting of `networkPolicy.enabled`.
+
 | Parameter | Default | Description |
 |---|---|---|
-| `networkPolicy.enabled` | `true` | Create a NetworkPolicy (ignored when `hostNetwork` is enabled) |
+| `networkPolicy.enabled` | `true` | Create a NetworkPolicy |
 
 ### Scheduling (customization optional)
 
