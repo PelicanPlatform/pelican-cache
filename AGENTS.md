@@ -54,7 +54,6 @@ pelican-cache/
     ├── configmap-xrootd.yaml            # Custom xrootd.conf (conditional)
     ├── pvc-cache-data.yaml              # Cache data PVC (conditional on type=pvc)
     ├── pvc-logging.yaml                 # Logging PVC (conditional on logging.persistence.separateVolume)
-    ├── pvc-issuer-key.yaml              # Issuer key PVC (conditional on type=pvc)
     ├── pvc-lotman.yaml                  # Lotman PVC (conditional on lotman.enabled)
     ├── validate.yaml                    # Render-time validation trigger (no resources emitted)
     └── NOTES.txt                        # Post-install notes
@@ -69,7 +68,7 @@ pelican-cache/
 3. **Storage flexibility with discriminated union pattern**: Cache data uses a `type` discriminator:
    - `type: pvc` → uses `cache.pvc.*` settings (supports both creating new PVCs and referencing existing ones via `cache.pvc.existingClaim`)
    - `type: hostPath` → uses `cache.hostPath.path` for direct node attachment
-   - Issuer key similarly uses `issuerKey.type` ("pvc" or "existingSecret") to choose between auto-generated or pre-existing keys.
+  - Issuer key is always sourced from a pre-existing Secret via `issuerKey.existingSecret`.
    
    **Why discriminated union, not optional `persistence`?** Unlike typical services where persistence is optional,
    a cache **requires** persistent storage by design. Using the optional `persistence.enabled` pattern would allow
@@ -101,7 +100,7 @@ pelican-cache/
 - **Pelican** is a data federation platform built on XRootD. A "cache" is a read-through caching proxy.
 - **OSDF** = Open Science Data Federation, the primary Pelican federation run by OSG.
 - **Federation Discovery URL** (`https://osg-htc.org`) tells Pelican where to find the OSDF director and registry.
-- **IssuerKey** is a JWK used to sign tokens. When using a PVC, Pelican auto-generates it on first start. When using an existing Secret, the operator provides a pre-generated key.
+- **IssuerKey** is a JWK used to sign tokens. The chart expects operators to pre-generate it and provide it via an existing Secret.
 - **Lotman** = lot-based storage management (experimental). Manages disk quotas per "lot."
 - **CVMFS port redirector** = a sidecar that redirects legacy CVMFS clients (port 8000) to the Pelican cache.
 - **Cache.StorageLocation**: In Pelican 7.12+, `StorageLocation` is the preferred cache path setting.
@@ -113,10 +112,10 @@ pelican-cache/
 
 ```bash
 # Lint
-helm lint . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set issuerKey.pvc.storageClass=std --set webPassword.existingSecret=pw
+helm lint . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
 
 # Render with minimal values
-helm template test . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set issuerKey.pvc.storageClass=std --set webPassword.existingSecret=pw
+helm template test . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
 
 # Render with full uw-osdf-cache-equivalent values (hostPath-backed)
 helm template test . -f ci/uw-osdf-cache-values.yaml
@@ -129,7 +128,7 @@ helm template test . -f ci/itb-osdf-pelican-cache-values.yaml
 helm template test .
 
 # Test validation: should fail with "cache.pvc.storageClass must be nonempty..."
-helm template test . --set serverHostname=test.local --set sitename=test-site --set cache.type=pvc --set logging.persistence.storageClass=std --set issuerKey.pvc.storageClass=std --set webPassword.existingSecret=pw
+helm template test . --set serverHostname=test.local --set sitename=test-site --set cache.type=pvc --set logging.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
 
 # Test existingClaim path: should succeed without storageClass
 helm template test . -f ci/uw-osdf-cache-values.yaml --set cache.pvc.existingClaim=my-existing-pvc
@@ -137,7 +136,7 @@ helm template test . -f ci/uw-osdf-cache-values.yaml --set cache.pvc.existingCla
 
 ## Storage Configuration (Discriminated Union Pattern)
 
-The `cache` and `issuerKey` blocks use a discriminated union pattern controlled by a `type` field:
+The `cache` block uses a discriminated union pattern controlled by a `type` field:
 
 ### Cache Storage
 
@@ -160,14 +159,6 @@ cache:
 
 ```yaml
 issuerKey:
-  type: "pvc" | "existingSecret"
-  
-  # When type: pvc
-  pvc:
-    storageClass: ""           # Required; StorageClass for the key PVC
-    size: 10Mi
-  
-  # When type: existingSecret
   existingSecret: ""           # Required; Secret name containing the issuer key
   secretKey: private-key.pem   # Key within the Secret
 ```
@@ -180,8 +171,7 @@ The chart enforces these rules at render time:
 |-----------|-------------|
 | `cache.type == "pvc"` AND `cache.pvc.existingClaim` is empty | `cache.pvc.storageClass` must be nonempty |
 | `cache.type == "hostPath"` | `cache.hostPath.path` must be nonempty |
-| `issuerKey.type == "pvc"` | `issuerKey.pvc.storageClass` must be nonempty |
-| `issuerKey.type == "existingSecret"` | `issuerKey.existingSecret` must be nonempty |
+| Always | `issuerKey.existingSecret` must be nonempty |
 | `logging.persistence.separateVolume == true` AND `logging.persistence.existingClaim` is empty | `logging.persistence.storageClass` must be nonempty |
 | `lotman.enabled == true` AND `lotman.pvc.existingClaim` is empty | `lotman.pvc.storageClass` must be nonempty |
 | `oidc.enabled == true` | `oidc.existingSecret` must be nonempty |

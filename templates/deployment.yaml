@@ -84,15 +84,10 @@ spec:
             - name: data
               mountPath: /var/log
             {{- end }}
-            {{- if eq .Values.issuerKey.type "existingSecret" }}
             - name: issuer-key
               readOnly: true
               mountPath: /etc/pelican/issuer-keys/issuer.pem
               subPath: {{ .Values.issuerKey.secretKey }}
-            {{- else }}
-            - name: issuer-key
-              mountPath: /etc/pelican/issuer-keys
-            {{- end }}
             - name: tls-cert
 {{/* We cannot mount the host cert secret at /etc/pelican/certificates
 because that would make that directory read-only and Pelican needs to write
@@ -211,19 +206,13 @@ its own CA there.  So we use a different directory here and in the Pelican confi
         {{- end }}
 
         # Issuer key
-        {{- if eq .Values.issuerKey.type "existingSecret" }}
         - name: issuer-key
           secret:
-            secretName: {{ required "issuerKey.existingSecret is required when type is existingSecret" .Values.issuerKey.existingSecret }}
+            secretName: {{ required "issuerKey.existingSecret is required" .Values.issuerKey.existingSecret }}
             items:
               - key: {{ .Values.issuerKey.secretKey }}
                 path: {{ .Values.issuerKey.secretKey }}
                 mode: 0600
-        {{- else }}
-        - name: issuer-key
-          persistentVolumeClaim:
-            claimName: {{ include "pelican-cache.fullname" . }}-issuer-key
-        {{- end }}
 
         {{- if .Values.lotman.enabled }}
         # Lotman persistent data

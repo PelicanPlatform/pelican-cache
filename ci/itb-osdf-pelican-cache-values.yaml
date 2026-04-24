@@ -27,7 +27,6 @@ cache:
       memory: "16Gi"
 
 issuerKey:
-  type: existingSecret
   existingSecret: itb-osdf-pelican-cache-issuer-keys
   secretKey: issuer.pem
 

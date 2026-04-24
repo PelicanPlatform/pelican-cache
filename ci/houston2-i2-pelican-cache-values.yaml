@@ -31,7 +31,6 @@ cache:
       memory: "210Gi"
 
 issuerKey:
-  type: existingSecret
   existingSecret: houston2-i2-pelican-pelican-cache-key
   secretKey: issuer.pem
 

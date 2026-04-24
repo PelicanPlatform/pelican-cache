@@ -215,7 +215,6 @@ Validate required values and conditional requirements.
 */}}
 {{- define "pelican-cache.validateRequiredValues" -}}
 {{- $cacheStorageType := .Values.cache.type | default "" }}
-{{- $issuerKeyType := .Values.issuerKey.type | default "" }}
 {{- $loggingPersist := .Values.logging.persistence.separateVolume }}
 
 {{- if eq $cacheStorageType "pvc" }}
@@ -232,16 +231,8 @@ Validate required values and conditional requirements.
   {{- end }}
 {{- end }}
 
-{{- if eq $issuerKeyType "pvc" }}
-  {{- if eq (trim (default "" .Values.issuerKey.pvc.storageClass)) "" }}
-    {{- fail "issuerKey.pvc.storageClass must be nonempty when issuerKey.type is \"pvc\"" }}
-  {{- end }}
-{{- end }}
-
-{{- if eq $issuerKeyType "existingSecret" }}
-  {{- if eq (trim (default "" .Values.issuerKey.existingSecret)) "" }}
-    {{- fail "issuerKey.existingSecret must be nonempty when issuerKey.type is \"existingSecret\"" }}
-  {{- end }}
+{{- if eq (trim (default "" .Values.issuerKey.existingSecret)) "" }}
+  {{- fail "issuerKey.existingSecret must be nonempty" }}
 {{- end }}
 
 {{- if eq (trim (default "" .Values.sitename)) "" }}

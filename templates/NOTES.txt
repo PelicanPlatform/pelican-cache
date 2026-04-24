@@ -38,12 +38,6 @@ For more information: https://docs.pelicanplatform.org/
 {{- $createdPVCs = append $createdPVCs $loggingPvcName -}}
 {{- end -}}
 
-{{- $issuerKeyPvcName := printf "%s-issuer-key" $fullname -}}
-{{- $issuerKeyShouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $issuerKeyPvcName) | trim) "true" -}}
-{{- if and (eq .Values.issuerKey.type "pvc") $issuerKeyShouldRender -}}
-{{- $createdPVCs = append $createdPVCs $issuerKeyPvcName -}}
-{{- end -}}
-
 {{- $lotmanPvcName := printf "%s-lotman" $fullname -}}
 {{- $lotmanShouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $lotmanPvcName) | trim) "true" -}}
 {{- if and .Values.lotman.enabled (not .Values.lotman.pvc.existingClaim) $lotmanShouldRender -}}

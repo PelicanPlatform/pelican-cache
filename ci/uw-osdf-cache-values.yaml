@@ -32,7 +32,6 @@ cache:
       memory: "48Gi"
 
 issuerKey:
-  type: existingSecret
   existingSecret: uw-osdf-cache-issuer-key
   secretKey: issuer.pem
 

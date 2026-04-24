@@ -41,7 +41,7 @@ helm install my-cache ./pelican-cache \
   --set sitename=my-site \
   --set cache.pvc.storageClass=my-storage-class \
   --set logging.persistence.storageClass=my-storage-class \
-  --set issuerKey.pvc.storageClass=my-storage-class \
+  --set issuerKey.existingSecret=my-issuer-key-secret \
   --set webPassword.existingSecret=my-web-passwd-secret
 ```
 
@@ -80,7 +80,7 @@ The chart manages several persistent volumes:
 |---|---|---|
 | Cache data | XRootD file cache | PVC or hostPath (`cache.type`) |
 | Logging | Pelican log files | Dedicated PVC (default) or shared with cache data (`logging.persistence.separateVolume`) |
-| Issuer key | Pelican issuer/signing key | PVC or existing Secret (`issuerKey.type`) |
+| Issuer key | Pelican issuer/signing key | Existing Secret (`issuerKey.existingSecret`) |
 | Lotman data | Lot-based storage management | PVC (when `lotman.enabled`) |
 
 **NVMe storage is strongly recommended for the cache data volume.**
@@ -124,22 +124,11 @@ If using a host path, you must specify the path in `cache.hostPath.path`.
 
 | Parameter | Default | Description |
 |---|---|---|
-| `issuerKey.type` | `pvc` | `pvc` (Pelican auto-generates) or `existingSecret` |
-| `issuerKey.pvc.storageClass` | `""` | StorageClass for key PVC |
-| `issuerKey.pvc.size` | `10Mi` | Key PVC size |
-| `issuerKey.existingSecret` | `""` | Pre-existing Secret name (when type is `existingSecret`) |
+| `issuerKey.existingSecret` | `""` | Pre-existing Secret name containing the issuer key |
 | `issuerKey.secretKey` | `private-key.pem` | Key within the Secret |
 
-You must specify a way to store the issuer key (which is the key Pelican uses to sign credentials
-and authenticate itself to the federation).
-Your options are:
-
-1.  Have Pelican generate the key and save it to a PVC that the chart creates.
-    To do this, specify `issuerKey.type: pvc` and `issuerKey.pvc.storageClass` to one of the available storage types in your cluster.
-    PVCs created by this chart will not be deleted on uninstall.
-
-2.  Pre-create the key using the `pelican key create` command, and save it as a secret.
-    To do this, specify `issuerKey.type: existingSecret` and specify the secret name as `issuerKey.existingSecret`.
+You must pre-create the issuer key using `pelican key create` and save it in a Secret.
+Set `issuerKey.existingSecret` to that Secret name.
 
 ### Logging (customization required)
 
@@ -319,8 +308,7 @@ logging:
     storageClass: standard
 
 issuerKey:
-  pvc:
-    storageClass: standard
+  existingSecret: my-issuer-key-secret
 
 webPassword:
   existingSecret: my-web-passwd-secret
@@ -349,7 +337,6 @@ cache:
       memory: "48Gi"
 
 issuerKey:
-  type: existingSecret
   existingSecret: my-cache-issuer-key
 
 tls:
@@ -429,8 +416,7 @@ cache:
 The chart enforces the following validation rules at render time to ensure a valid configuration:
 
 **Issuer Key:**
-- If `issuerKey.type` is `pvc`, `issuerKey.pvc.storageClass` must be nonempty
-- If `issuerKey.type` is `existingSecret`, `issuerKey.existingSecret` must be nonempty
+- `issuerKey.existingSecret` must be nonempty
 
 **Federation:**
 - If `federation.discoveryUrl` or `federation.label` match a known federation pair (OSDF or OSDF-ITB), both must be set consistently
@@ -462,7 +448,7 @@ The `Recreate` deployment strategy is used (not `RollingUpdate`) because the cac
 
 ```bash
 # Lint the chart
-helm lint . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set issuerKey.pvc.storageClass=std --set webPassword.existingSecret=pw
+helm lint . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
 
 # Render templates locally
 helm template my-cache . -f ci/uw-osdf-cache-values.yaml
