@@ -42,13 +42,13 @@ spec:
       containers:
         # ---- Main Pelican cache container ----
         - name: pelican-cache
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.cache.image.repository }}:{{ .Values.cache.image.tag | default .Chart.AppVersion }}"
           {{- if .Values.sleep }}
           command: ["sleep", "infinity"]
           {{- else }}
           args: []
           {{- end }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.cache.image.pullPolicy }}
           {{- with .Values.cache.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

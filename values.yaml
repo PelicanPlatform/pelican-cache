@@ -24,12 +24,6 @@ federation:
   # -- Discovery URL for the federation (OSDF default)
   discoveryUrl: "https://osg-htc.org"
 
-# -- Cache container image
-image:
-  repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
-  tag: ""
-  pullPolicy: IfNotPresent
-
 # -- Logrotate sidecar configuration
 logrotate:
   image:
@@ -49,6 +43,11 @@ logrotate:
 # -- You must choose between "pvc" and "hostPath" to determine where to
 # -- persist, and then configure the details in the appropriate subsections.
 cache:
+  # -- Cache container image
+  image:
+    repository: hub.opensciencegrid.org/pelican_platform/cache
+    tag: ""
+    pullPolicy: IfNotPresent
   # -- Storage type: "pvc" or "hostPath"
   type: pvc
   # -- Host path configuration when type is "hostPath"

@@ -7,14 +7,13 @@ sitename: ITB-OSDF-PELICAN-CACHE
 federation:
   discoveryUrl: "https://osdf-itb.osg-htc.org"
 
-image:
-  repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
-  tag: "v7.23.0"
-
 cvmfsRedirector:
   enabled: false
 
 cache:
+  image:
+    repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
+    tag: "v7.23.0"
   type: pvc
   pvc:
     storageClass: 3x-replica-hdd-raddus

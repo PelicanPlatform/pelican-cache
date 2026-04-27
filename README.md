@@ -161,9 +161,9 @@ The default federation is OSDF so OSDF caches do not need to change this section
 
 | Parameter | Default | Description |
 |---|---|---|
-| `image.repository` | `hub.opensciencegrid.org/pelican_platform/osdf-cache` | Cache container image |
-| `image.tag` | `""` | Cache image tag (defaults to chart `appVersion` when empty) |
-| `image.pullPolicy` | `IfNotPresent` | Image pull policy for the cache container |
+| `cache.image.repository` | `hub.opensciencegrid.org/pelican_platform/cache` | Cache container image |
+| `cache.image.tag` | `""` | Cache image tag (defaults to chart `appVersion` when empty) |
+| `cache.image.pullPolicy` | `IfNotPresent` | Image pull policy for the cache container |
 | `logrotate.image.repository` | `hub.opensciencegrid.org/opensciencegrid/logrotate` | Logrotate sidecar image |
 | `logrotate.image.tag` | `24-release` | Logrotate image tag |
 
@@ -306,10 +306,9 @@ webPassword:
 serverHostname: osdf-uw-cache.svc.osg-htc.org
 sitename: MY_PELICAN_CACHE
 
-image:
-  tag: "v7.23.0"
-
 cache:
+  image:
+    tag: "v7.23.0"
   type: hostPath
   hostPath:
     path: /srv/pelican-cache/
@@ -384,11 +383,11 @@ sitename: MY_CACHE
 federation:
   discoveryUrl: "https://my-federation.example.com"
 
-image:
-  # Use the generic Pelican cache image instead of the OSDF-specific one
-  repository: hub.opensciencegrid.org/pelican_platform/cache
 
 cache:
+  image:
+    # Use the generic Pelican cache image instead of the OSDF-specific one
+    repository: hub.opensciencegrid.org/pelican_platform/cache
   type: pvc
   pvc:
     storageClass: local-nvme

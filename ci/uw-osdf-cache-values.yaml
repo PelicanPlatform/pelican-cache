@@ -7,11 +7,10 @@ sitename: CHTC_PELICAN_CACHE
 federation:
   discoveryUrl: "https://osg-htc.org"
 
-image:
-  repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
-  tag: "v7.23.0"
-
 cache:
+  image:
+    repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
+    tag: "v7.23.0"
   type: hostPath
   hostPath:
     path: /srv/pelican-cache/

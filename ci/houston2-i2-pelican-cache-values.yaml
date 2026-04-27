@@ -7,13 +7,12 @@ sitename: HOUSTON2_INTERNET2_OSDF_CACHE
 federation:
   discoveryUrl: "https://osg-htc.org"
 
-image:
-  repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
-  tag: "v7.22.0"
-  pullPolicy: IfNotPresent
-
 # The real deployment uses an existing PVC (pvc-dtn-pas.hous.net.internet2.edu).
 cache:
+  image:
+    repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
+    tag: "v7.22.0"
+    pullPolicy: IfNotPresent
   type: hostPath
   hostPath:
     path: /cache
