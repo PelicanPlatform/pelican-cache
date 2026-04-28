@@ -31,7 +31,13 @@ jobs:
       matrix:
         include:
           - name: minimal
-            args: "--set serverHostname=test.example.com"
+            args: >-
+              --set serverHostname=test.example.com
+              --set sitename=TEST_EXAMPLE_COM_CACHE
+              --set cache.pvc.storageClass=fast-nvme
+              --set logging.persistence.storageClass=standard
+              --set issuerKey.existingSecret=my-issuer-key-secret
+              --set webPassword.existingSecret=my-web-passwd-secret
           - name: uw-osdf-cache
             args: "-f ci/uw-osdf-cache-values.yaml"
           - name: itb-osdf-pelican-cache
