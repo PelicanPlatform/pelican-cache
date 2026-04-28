@@ -131,11 +131,13 @@ Set `issuerKey.existingSecret` to that Secret name.
 | Parameter | Default | Description |
 |---|---|---|
 | `logging.persistence.separateVolume` | `true` | Provision a dedicated PVC for `/var/log/pelican`; when `false`, the data volume is also mounted at `/var/log` so `/var/log/pelican` can still live on cache storage. Logrotate always runs. |
-| `logging.level` | `INFO` | Global Pelican log level |
 | `logging.persistence.existingClaim` | `""` | Existing logging PVC name (if set, ignores `storageClass` and `size`) |
 | `logging.persistence.storageClass` | `""` | StorageClass for new logging PVC (required if `existingClaim` is not set and `separateVolume=true`) |
 | `logging.persistence.size` | `50Gi` | Logging PVC size (used when creating a new PVC) |
-| `logging.cache` | `{}` | Per-subsystem log levels (map, e.g. `{Pss: debug, Pfc: debug}`) |
+| `loggingConfig.level` | `INFO` | Global Pelican log level |
+| `loggingConfig.cache` | `{}` | Per-subsystem log levels (map, e.g. `{Pss: debug, Pfc: debug}`) |
+| `loggingConfig.rotateSize` | `500M` | Log file size threshold that triggers rotation |
+| `loggingConfig.rotateCount` | `10` | Number of rotated log files to keep |
 
 ### Admin / Web UI (customization required)
 
@@ -181,13 +183,15 @@ not configurable.
 
 | Parameter | Default | Description |
 |---|---|---|
-| `cache.blocksToPrefetch` | `""` | Blocks to prefetch (e.g. `10`) |
-| `cache.concurrency` | `""` | Max concurrent requests (e.g. `240` — guidance: 10× core count) |
-| `cache.highWaterMark` | `""` | Eviction high watermark (e.g. `27000g`) |
-| `cache.lowWaterMark` | `""` | Eviction low watermark (e.g. `25000g`) |
-| `cache.filesMaxSize` | `""` | XRootD diskusage max tracked size. Must be &lt; low watermark. |
-| `cache.filesNominalSize` | `""` | XRootD diskusage nominal tracked size |
-| `cache.filesBaseSize` | `""` | XRootD diskusage base tracked size |
+| `cacheConfig.blocksToPrefetch` | `""` | Blocks to prefetch (e.g. `10`) |
+| `cacheConfig.concurrency` | `""` | Max concurrent requests (e.g. `240` — guidance: 10× core count) |
+| `cacheConfig.highWaterMark` | `""` | Eviction high watermark (e.g. `27000g` or `95`) |
+| `cacheConfig.lowWaterMark` | `""` | Eviction low watermark (e.g. `25000g` or `90`) |
+| `cacheConfig.filesMaxSize` | `""` | XRootD diskusage max tracked size. Must be &lt; low watermark. |
+| `cacheConfig.filesNominalSize` | `""` | XRootD diskusage nominal tracked size |
+| `cacheConfig.filesBaseSize` | `""` | XRootD diskusage base tracked size |
+
+`highWaterMark` and `lowWaterMark` may be absolute sizes ending in `g` (gigabytes) or disk space percentages (no suffix).
 
 For details on `Files*Size` parameters, see the [XRootD PFC documentation](https://xrootd.web.cern.ch/doc/dev56/pss_config.pdf) (search for "diskusage").
 
@@ -225,8 +229,6 @@ Note: When `hostNetwork` is enabled, a Service does not get created, in which ca
 | `logrotate.resources.requests.memory` | `500M` | Logrotate memory request |
 | `logrotate.resources.limits.cpu` | `2` | Logrotate CPU limit |
 | `logrotate.resources.limits.memory` | `2G` | Logrotate memory limit |
-| `logrotate.size` | `500M` | Log file size threshold that triggers rotation |
-| `logrotate.rotate` | `10` | Number of rotated log files to keep |
 
 ### Optional Components
 
@@ -317,14 +319,16 @@ cache:
   type: hostPath
   hostPath:
     path: /srv/pelican-cache/
-  blocksToPrefetch: 10
-  concurrency: 240
-  highWaterMark: 27000g
-  lowWaterMark: 25000g
   resources:
     requests:
       cpu: "24"
       memory: "48Gi"
+
+cacheConfig:
+  blocksToPrefetch: 10
+  concurrency: 240
+  highWaterMark: 27000g
+  lowWaterMark: 25000g
 
 issuerKey:
   existingSecret: my-cache-issuer-key

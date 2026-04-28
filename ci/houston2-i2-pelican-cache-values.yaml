@@ -16,7 +16,6 @@ cache:
   type: hostPath
   hostPath:
     path: /cache
-  concurrency: 160
   resources:
     requests:
       cpu: "16000m"
@@ -24,6 +23,9 @@ cache:
     limits:
       cpu: "16000m"
       memory: "210Gi"
+
+cacheConfig:
+  concurrency: 160
 
 issuerKey:
   existingSecret: houston2-i2-pelican-pelican-cache-key
@@ -59,12 +61,14 @@ logrotate:
 logging:
   persistence:
     separateVolume: false
+  # NOTE: logging.origin and server.webPort from the real deployment are not
+  # supported as first-class chart values; use extraPelicanConfig if needed.
+
+loggingConfig:
   level: INFO
   cache:
     Pss: warn
     Scitokens: warn
-  # NOTE: logging.origin and server.webPort from the real deployment are not
-  # supported as first-class chart values; use extraPelicanConfig if needed.
 
 oidc:
   enabled: true

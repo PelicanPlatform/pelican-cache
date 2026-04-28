@@ -14,6 +14,12 @@ cache:
   type: hostPath
   hostPath:
     path: /srv/pelican-cache/
+  resources:
+    requests:
+      cpu: "24"
+      memory: "48Gi"
+
+cacheConfig:
   blocksToPrefetch: 10
   concurrency: 240
   highWaterMark: 27000g
@@ -21,10 +27,6 @@ cache:
   filesMaxSize: 17500g
   filesNominalSize: 17000g
   filesBaseSize: 16500g
-  resources:
-    requests:
-      cpu: "24"
-      memory: "48Gi"
 
 issuerKey:
   existingSecret: uw-osdf-cache-issuer-key
@@ -57,11 +59,13 @@ logrotate:
       memory: "2G"
 
 logging:
-  level: "debug"
   persistence:
     separateVolume: true
     storageClass: 3x-replica-hdd-raddus
     size: 50Gi
+
+loggingConfig:
+  level: "debug"
   cache:
     Pss: "debug"
     Pfc: "debug"

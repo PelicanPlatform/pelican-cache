@@ -30,8 +30,8 @@ So we mount it at cert-orig instead (see deployment.yaml). */}}
       UIPasswordFile: /etc/pelican/server-web-passwd
     {{- end }}
 
-    {{- if .Values.cache.blocksToPrefetch }}
-    Cache.BlocksToPrefetch: {{ .Values.cache.blocksToPrefetch }}
+    {{- if .Values.cacheConfig.blocksToPrefetch }}
+    Cache.BlocksToPrefetch: {{ .Values.cacheConfig.blocksToPrefetch }}
     {{- end }}
     {{- if .Values.oidc.enabled }}
     Cache.EnableOIDC: true
@@ -39,23 +39,23 @@ So we mount it at cert-orig instead (see deployment.yaml). */}}
     {{- if .Values.lotman.enabled }}
     Cache.EnableLotman: true
     {{- end }}
-    {{- if .Values.cache.highWaterMark }}
-    Cache.HighWaterMark: {{ .Values.cache.highWaterMark }}
+    {{- if .Values.cacheConfig.highWaterMark }}
+    Cache.HighWaterMark: {{ .Values.cacheConfig.highWaterMark }}
     {{- end }}
-    {{- if .Values.cache.lowWaterMark }}
-    Cache.LowWaterMark: {{ .Values.cache.lowWaterMark }}
+    {{- if .Values.cacheConfig.lowWaterMark }}
+    Cache.LowWaterMark: {{ .Values.cacheConfig.lowWaterMark }}
     {{- end }}
-    {{- if .Values.cache.filesMaxSize }}
-    Cache.FilesMaxSize: {{ .Values.cache.filesMaxSize }}
+    {{- if .Values.cacheConfig.filesMaxSize }}
+    Cache.FilesMaxSize: {{ .Values.cacheConfig.filesMaxSize }}
     {{- end }}
-    {{- if .Values.cache.filesNominalSize }}
-    Cache.FilesNominalSize: {{ .Values.cache.filesNominalSize }}
+    {{- if .Values.cacheConfig.filesNominalSize }}
+    Cache.FilesNominalSize: {{ .Values.cacheConfig.filesNominalSize }}
     {{- end }}
-    {{- if .Values.cache.filesBaseSize }}
-    Cache.FilesBaseSize: {{ .Values.cache.filesBaseSize }}
+    {{- if .Values.cacheConfig.filesBaseSize }}
+    Cache.FilesBaseSize: {{ .Values.cacheConfig.filesBaseSize }}
     {{- end }}
-    {{- if .Values.cache.concurrency }}
-    Cache.Concurrency: {{ .Values.cache.concurrency }}
+    {{- if .Values.cacheConfig.concurrency }}
+    Cache.Concurrency: {{ .Values.cacheConfig.concurrency }}
     {{- end }}
 
     {{- if .Values.oidc.enabled }}
@@ -67,10 +67,10 @@ So we mount it at cert-orig instead (see deployment.yaml). */}}
 
     Logging:
       LogLocation: "/var/log/pelican/pelican.log"
-      Level: {{ .Values.logging.level | quote }}
-    {{- if .Values.logging.cache }}
+      Level: {{ .Values.loggingConfig.level | quote }}
+    {{- if .Values.loggingConfig.cache }}
       Cache:
-        {{- toYaml .Values.logging.cache | nindent 8 }}
+        {{- toYaml .Values.loggingConfig.cache | nindent 8 }}
     {{- end }}
 
     Topology.DisableCacheX509: true

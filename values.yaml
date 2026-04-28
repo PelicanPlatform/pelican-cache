@@ -8,7 +8,7 @@ federation:
   # -- Discovery URL for the federation (OSDF default)
   discoveryUrl: "https://osg-htc.org"
 
-# -- Cache data storage configuration
+# -- Cache data storage and deployment configuration
 # -- You must choose between "pvc" and "hostPath" to determine where to
 # -- persist, and then configure the details in the appropriate subsections.
 cache:
@@ -29,20 +29,6 @@ cache:
     # -- PVC size when creating a new PVC; this must be specified
     # -- unless you are using existingClaim.
     size: 1000Gi
-  # -- Number of blocks to prefetch (e.g. 10)
-  blocksToPrefetch: ""
-  # -- Maximum concurrent requests (e.g. 240)
-  concurrency: ""
-  # -- High water mark for cache eviction (e.g. "27000g")
-  highWaterMark: ""
-  # -- Low water mark for cache eviction (e.g. "25000g")
-  lowWaterMark: ""
-  # -- diskusage max file tracking size (e.g. "17500g")
-  filesMaxSize: ""
-  # -- diskusage nominal file tracking size (e.g. "17000g")
-  filesNominalSize: ""
-  # -- diskusage base file tracking size (e.g. "16500g")
-  filesBaseSize: ""
   # -- Cache container image
   image:
     repository: hub.opensciencegrid.org/pelican_platform/cache
@@ -54,6 +40,26 @@ cache:
       cpu: "1000m"
       memory: "16Gi"
     limits: {}
+
+# -- Pelican cache runtime tuning parameters.
+# -- These control application-level behavior (eviction, prefetch, concurrency).
+# -- All values default to empty string, which omits the setting from the config
+# -- and lets Pelican use its built-in defaults.
+cacheConfig:
+  # -- Number of blocks to prefetch (e.g. 10)
+  blocksToPrefetch: ""
+  # -- Maximum concurrent requests (e.g. 240; guidance: 10x core count)
+  concurrency: ""
+  # -- High water mark for cache eviction (e.g. "27000g" or "95")
+  highWaterMark: ""
+  # -- Low water mark for cache eviction (e.g. "25000g" or "90")
+  lowWaterMark: ""
+  # -- diskusage max file tracking size (e.g. "17500g"); if specified, must be < lowWaterMark
+  filesMaxSize: ""
+  # -- diskusage nominal file tracking size (e.g. "17000g")
+  filesNominalSize: ""
+  # -- diskusage base file tracking size (e.g. "16500g")
+  filesBaseSize: ""
 
 # -- Issuer key configuration
 issuerKey:
@@ -96,16 +102,6 @@ logging:
     # -- Logging PVC size when creating a new PVC; this must be specified
     # -- unless you are using existingClaim.
     size: 50Gi
-  # -- Global log level
-  level: INFO
-  # -- Per-subsystem cache log levels
-  cache: {}
-  #   Pss: debug
-  #   Pfc: debug
-  #   PssSetOpt: debug
-  #   Scitokens: warn
-  #   Http: warn
-  #   Xrd: warn
 
 # -- Logrotate sidecar configuration
 logrotate:
@@ -119,8 +115,23 @@ logrotate:
     limits:
       cpu: "2"
       memory: "2G"
-  size: 500M
-  rotate: 10
+
+# -- Pelican logging and logrotate runtime settings.
+loggingConfig:
+  # -- Global Pelican log level
+  level: INFO
+  # -- Per-subsystem cache log levels
+  cache: {}
+  #   Pss: debug
+  #   Pfc: debug
+  #   PssSetOpt: debug
+  #   Scitokens: warn
+  #   Http: warn
+  #   Xrd: warn
+  # -- Log file size threshold that triggers rotation
+  rotateSize: 500M
+  # -- Number of rotated log files to keep
+  rotateCount: 10
 
 # -- Lotman (lot-based storage management)
 lotman:
