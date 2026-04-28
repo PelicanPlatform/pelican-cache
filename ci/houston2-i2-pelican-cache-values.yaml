@@ -69,17 +69,16 @@ logging:
 oidc:
   enabled: true
   existingSecret: nrp-oidc-client-secret
-
-adminUsers:
-  - "http://cilogon.org/serverE/users/133679"
-  - "http://cilogon.org/serverA/users/10832"
-  - "http://cilogon.org/serverA/users/21441"
-  - "http://cilogon.org/serverA/users/46022246"
-  - "http://cilogon.org/serverA/users/9265706"
-  - "http://cilogon.org/serverE/users/57152"
-  - "http://cilogon.org/serverE/users/130835"
-  - "http://cilogon.org/serverE/users/245993"
-  - "http://cilogon.org/serverB/users/51444962"
+  adminUsers:
+    - "http://cilogon.org/serverE/users/133679"
+    - "http://cilogon.org/serverA/users/10832"
+    - "http://cilogon.org/serverA/users/21441"
+    - "http://cilogon.org/serverA/users/46022246"
+    - "http://cilogon.org/serverA/users/9265706"
+    - "http://cilogon.org/serverE/users/57152"
+    - "http://cilogon.org/serverE/users/130835"
+    - "http://cilogon.org/serverE/users/245993"
+    - "http://cilogon.org/serverB/users/51444962"
 
 webPassword:
   existingSecret: osdf-web-pass-nrp

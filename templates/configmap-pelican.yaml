@@ -22,9 +22,9 @@ So we mount it at cert-orig instead (see deployment.yaml). */}}
       TlsCertificate: "/etc/pelican/cert-orig/tls.crt"
       TlsKey: "/etc/pelican/cert-orig/tls.key"
       Hostname: {{ required "serverHostname is required" .Values.serverHostname | quote }}
-    {{- if .Values.adminUsers }}
+    {{- if .Values.oidc.adminUsers }}
       UIAdminUsers:
-        {{- toYaml .Values.adminUsers | nindent 8 }}
+        {{- toYaml .Values.oidc.adminUsers | nindent 8 }}
     {{- end }}
     {{- if .Values.webPassword.existingSecret }}
       UIPasswordFile: /etc/pelican/server-web-passwd

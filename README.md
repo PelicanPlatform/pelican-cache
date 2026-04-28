@@ -141,12 +141,19 @@ Set `issuerKey.existingSecret` to that Secret name.
 
 | Parameter | Default | Description |
 |---|---|---|
-| `adminUsers` | `[]` | List of OIDC `sub` claims of users that should have admin access |
 | `webPassword.existingSecret` | `""` | Existing Secret for web UI password |
 | `webPassword.key` | `server-web-passwd` | Key within the web password Secret |
+| `oidc.enabled` | `false` | Enable OIDC authentication |
+| `oidc.existingSecret` | `""` | Secret with `client.id` and `client.secret` keys |
+| `oidc.adminUsers` | `[]` | OIDC `sub` claims for UI admins; must be nonempty when `oidc.enabled=true` |
 
 You must create a secret containing a file named `server-web-passwd` that was created by running `pelican generate password`
 and specify that as `webPassword.existingSecret`.
+
+You may also have admins log in via OIDC. In this case, set `oidc.enabled` to `true`,
+add a Secret for contacting the Identity Provider with an OIDC client ID and secret
+(`client.id` and `client.secret`, respectively), and add a list of `sub` claims to
+`oidc.adminUsers`.
 
 ### Federation (customization optional)
 
@@ -233,8 +240,6 @@ Note: When `hostNetwork` is enabled, a Service does not get created, in which ca
 | `lotman.pvc.existingClaim` | `""` | Existing Lotman PVC name (if set, ignores `storageClass` and `size`) |
 | `lotman.pvc.storageClass` | `""` | StorageClass for new Lotman PVC (required if `existingClaim` is not set and `enabled=true`) |
 | `lotman.pvc.size` | `10Gi` | Lotman PVC size (used when creating a new PVC) |
-| `oidc.enabled` | `false` | Enable OIDC authentication |
-| `oidc.existingSecret` | `""` | Secret with `client.id` and `client.secret` keys |
 
 When `sleep` is `true`, the `pelican-cache` container starts with `sleep infinity` for debugging. After you `kubectl exec` into the container, you can start the cache manually with `pelican cache serve`.
 
@@ -354,10 +359,9 @@ lotman:
 oidc:
   enabled: true
   existingSecret: osdf-component-oidc
-
-adminUsers:
-  - "http://cilogon.org/serverE/users/12345"
-  - "http://cilogon.org/serverA/users/67890"
+  adminUsers:
+    - "http://cilogon.org/serverE/users/12345"
+    - "http://cilogon.org/serverA/users/67890"
 webPassword:
   existingSecret: my-web-passwd-secret
 

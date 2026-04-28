@@ -168,10 +168,10 @@ oidc:
   enabled: false
   # -- Name of an existing Secret with keys "client.id" and "client.secret"
   existingSecret: ""
-
-# -- List of CILogon admin user identities for the web UI
-adminUsers: []
-#   - "http://cilogon.org/serverA/users/12345"
+  # -- List of CILogon admin user identities for the web UI.
+  # -- Must be nonempty when enabled is true.
+  adminUsers: []
+  #   - "http://cilogon.org/serverA/users/12345"
 
 webPassword:
   # -- Required: Name of an existing Secret containing the web UI password file

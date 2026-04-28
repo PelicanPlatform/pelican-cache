@@ -154,6 +154,13 @@ Validate required values and conditional requirements.
   {{- if eq (trim (default "" .Values.oidc.existingSecret)) "" }}
     {{- fail "oidc.existingSecret must be nonempty when oidc.enabled is true" }}
   {{- end }}
+  {{- if eq (len .Values.oidc.adminUsers) 0 }}
+    {{- fail "oidc.adminUsers must be nonempty when oidc.enabled is true" }}
+  {{- end }}
+{{- end }}
+
+{{- if and (not .Values.oidc.enabled) (gt (len .Values.oidc.adminUsers) 0) }}
+  {{- fail "oidc.enabled must be true when oidc.adminUsers is nonempty" }}
 {{- end }}
 
 {{- if eq (trim (default "" .Values.webPassword.existingSecret)) "" }}

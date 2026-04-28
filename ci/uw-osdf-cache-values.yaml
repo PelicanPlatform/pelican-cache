@@ -76,14 +76,13 @@ lotman:
 oidc:
   enabled: true
   existingSecret: osdf-component-oidc
-
-adminUsers:
-  - "http://cilogon.org/serverE/users/133679"
-  - "http://cilogon.org/serverA/users/10832"
-  - "http://cilogon.org/serverA/users/21441"
-  - "http://cilogon.org/serverA/users/46022246"
-  - "http://cilogon.org/serverA/users/9265706"
-  - "http://cilogon.org/serverE/users/57152"
+  adminUsers:
+    - "http://cilogon.org/serverE/users/133679"
+    - "http://cilogon.org/serverA/users/10832"
+    - "http://cilogon.org/serverA/users/21441"
+    - "http://cilogon.org/serverA/users/46022246"
+    - "http://cilogon.org/serverA/users/9265706"
+    - "http://cilogon.org/serverE/users/57152"
 
 webPassword:
   existingSecret: osdf-prod-pelican-webserver-passwd
