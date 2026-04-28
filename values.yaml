@@ -1,21 +1,5 @@
-# -- Override the chart name
-nameOverride: ""
-# -- Override the full release name
-fullnameOverride: ""
-
-# -- Number of replicas (typically 1 for a cache)
-replicaCount: 1
-
 # -- (Required) External FQDN of the cache server
 serverHostname: ""
-
-# -- Server process settings
-server:
-  # -- Cache service port
-  cachePort: 8443
-  # -- Web UI HTTPS port
-  webPort: 443
-
 # -- (Required) Site name reported to the federation
 sitename: ""
 
@@ -24,30 +8,10 @@ federation:
   # -- Discovery URL for the federation (OSDF default)
   discoveryUrl: "https://osg-htc.org"
 
-# -- Logrotate sidecar configuration
-logrotate:
-  image:
-    repository: hub.opensciencegrid.org/opensciencegrid/logrotate
-    tag: "24-release"
-  resources:
-    requests:
-      cpu: "1"
-      memory: "500M"
-    limits:
-      cpu: "2"
-      memory: "2G"
-  size: 500M
-  rotate: 10
-
 # -- Cache data storage configuration
 # -- You must choose between "pvc" and "hostPath" to determine where to
 # -- persist, and then configure the details in the appropriate subsections.
 cache:
-  # -- Cache container image
-  image:
-    repository: hub.opensciencegrid.org/pelican_platform/cache
-    tag: ""
-    pullPolicy: IfNotPresent
   # -- Storage type: "pvc" or "hostPath"
   type: pvc
   # -- Host path configuration when type is "hostPath"
@@ -79,6 +43,12 @@ cache:
   filesNominalSize: ""
   # -- diskusage base file tracking size (e.g. "16500g")
   filesBaseSize: ""
+  # -- Cache container image
+  image:
+    repository: hub.opensciencegrid.org/pelican_platform/cache
+    tag: ""
+    pullPolicy: IfNotPresent
+  # -- Resource request for cache
   resources:
     requests:
       cpu: "1000m"
@@ -108,15 +78,6 @@ tls:
   # -- if this is set, tls.certManager.enabled must be false.
   existingSecret: ""
 
-# -- Service configuration
-service:
-  type: LoadBalancer
-  # -- Request a specific load balancer IP
-  loadBalancerIP: ""
-  externalTrafficPolicy: Local
-  # -- Extra annotations (e.g. external-dns, metallb)
-  annotations: {}
-
 # -- Logging configuration
 logging:
   persistence:
@@ -145,6 +106,21 @@ logging:
   #   Scitokens: warn
   #   Http: warn
   #   Xrd: warn
+
+# -- Logrotate sidecar configuration
+logrotate:
+  image:
+    repository: hub.opensciencegrid.org/opensciencegrid/logrotate
+    tag: "24-release"
+  resources:
+    requests:
+      cpu: "1"
+      memory: "500M"
+    limits:
+      cpu: "2"
+      memory: "2G"
+  size: 500M
+  rotate: 10
 
 # -- Lotman (lot-based storage management)
 lotman:
@@ -179,20 +155,33 @@ webPassword:
   # -- Key within the web password Secret
   key: "server-web-passwd"
 
-# -- XRootD configuration
-xrootd:
-  # -- Raw xrootd.conf content (creates a ConfigMap and mounts it)
-  extraConfig: ""
-
-# -- Debugging: set this to true to sleep instead of starting the cache
-sleep: false
+# -- Use host networking for the pod
+hostNetwork: false
 
 # -- Network policy
 networkPolicy:
   enabled: true
 
-# -- Use host networking for the pod
-hostNetwork: false
+# -- Server process settings
+server:
+  # -- Cache service port
+  cachePort: 8443
+  # -- Web UI HTTPS port
+  webPort: 443
+
+# -- Service configuration
+service:
+  type: LoadBalancer
+  # -- Request a specific load balancer IP
+  loadBalancerIP: ""
+  externalTrafficPolicy: Local
+  # -- Extra annotations (e.g. external-dns, metallb)
+  annotations: {}
+
+# -- XRootD configuration
+xrootd:
+  # -- Raw xrootd.conf content (creates a ConfigMap and mounts it)
+  extraConfig: ""
 
 # -- Node selector for pod scheduling
 nodeSelector: {}
@@ -230,3 +219,10 @@ extraVolumeMounts: []
 # chart-managed settings so they can override them.
 extraPelicanConfig: {}
 
+# -- Debugging: set this to true to sleep instead of starting the cache
+sleep: false
+
+# -- Override the chart name
+nameOverride: ""
+# -- Override the full release name
+fullnameOverride: ""
