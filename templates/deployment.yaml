@@ -84,7 +84,7 @@ spec:
             - name: issuer-key
               readOnly: true
               mountPath: /etc/pelican/issuer-keys/issuer.pem
-              subPath: {{ .Values.issuerKey.secretKey }}
+              subPath: {{ required "issuerKey.secretKey is required" .Values.issuerKey.secretKey }}
             - name: tls-cert
 {{/* We cannot mount the host cert secret at /etc/pelican/certificates
 because that would make that directory read-only and Pelican needs to write
@@ -190,7 +190,7 @@ its own CA there.  So we use a different directory here and in the Pelican confi
           secret:
             secretName: {{ required "issuerKey.existingSecret is required" .Values.issuerKey.existingSecret }}
             items:
-              - key: {{ .Values.issuerKey.secretKey }}
+              - key: {{ required "issuerKey.secretKey is required" .Values.issuerKey.secretKey }}
                 path: {{ .Values.issuerKey.secretKey }}
                 mode: 0600
 
