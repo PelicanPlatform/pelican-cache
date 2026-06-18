@@ -108,9 +108,6 @@ securityContext:
   capabilities:
     add: ["SYS_PTRACE"]
 
-# NOTE: XRD_CURLDISABLEX509 is already set unconditionally by the chart's
-# deployment template, so it does not need to be repeated in extraEnv.
-
 # Convert remaining env-var config that doesn't have first-class values.yaml
 # knobs into proper YAML config.
 extraPelicanConfig:
