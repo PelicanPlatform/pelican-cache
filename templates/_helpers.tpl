@@ -61,7 +61,7 @@ This helper:
 {{- define "pelican-cache.sanitizedFederationUrl" -}}
 {{- $url := .Values.federation.discoveryUrl }}
 {{- $stripped := regexReplaceAll "^[^:]+://" $url "" -}}
-{{- $stripped := regexReplaceAll "[^A-Za-z0-9._-]" $stripped "_" -}}
+{{- $stripped = regexReplaceAll "[^A-Za-z0-9._-]" $stripped "_" -}}
 {{- $stripped }}
 {{- end }}
 
