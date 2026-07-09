@@ -16,9 +16,9 @@ manifests/tiger/osdf-prod/uw-osdf-cache/
 
 That deployment uses a **three-layer Kustomize inheritance chain**:
 
-1. `manifests/base/pelican-cache/` — Generic Pelican cache base (Deployment with 3 containers: `pelican-cache`, `cvmfs-redirector`, `logrotate`; Service; 3 PVCs; NetworkPolicy; cert-manager Certificate; ConfigMaps for pelican.yaml and logrotate)
-2. `manifests/base/osdf-pelican-cache/` — OSDF overlay (adds `osdf-` namePrefix, `federation: osdf` label, sets `Federation.DiscoveryUrl` to `https://osg-htc.org`, replaces overlay-config emptyDir with a ConfigMap)
-3. `manifests/tiger/osdf-prod/uw-osdf-cache/` — Instance overlay (pins images, pins to a specific node, deletes cvmfs-redirector, replaces cache-data PVC with hostPath, replaces namespace-key PVC with a Secret from SealedSecret, adds lotman/OIDC/web-password volumes, sets heavy resources and cache tuning)
+1. `manifests/base/pelican-cache/` — Generic Pelican cache base (Deployment with 2 containers: `pelican-cache`, `logrotate`; Service; 3 PVCs; NetworkPolicy; cert-manager Certificate; ConfigMaps for pelican.yaml and logrotate)
+2. `manifests/base/osdf-pelican-cache/` — OSDF overlay (adds `osdf-` namePrefix, `pelicanplatform.org/federation: https://osg-htc.org` label, sets `Federation.DiscoveryUrl` to `https://osg-htc.org`, replaces overlay-config emptyDir with a ConfigMap)
+3. `manifests/tiger/osdf-prod/uw-osdf-cache/` — Instance overlay (pins images, pins to a specific node, replaces cache-data PVC with hostPath, replaces namespace-key PVC with a Secret from SealedSecret, adds lotman/OIDC/web-password volumes, sets heavy resources and cache tuning)
 
 This chart collapses all three layers into parameterized Helm templates.
 
@@ -31,54 +31,74 @@ pelican-cache/
 ├── README.md                           # User-facing documentation
 ├── AGENTS.md                           # This file — AI agent context
 ├── .devcontainer/
-│   └── devcontainer.json               # Dev container for chart development
+│   ├── devcontainer.json               # Dev container for chart development
+│   └── post-create.sh                  # Post-creation setup script
 ├── ci/
-│   └── uw-osdf-cache-values.yaml       # Test values mirroring the real uw-osdf-cache
+│   ├── uw-osdf-cache-values.yaml              # Test values mirroring the real uw-osdf-cache (hostPath-backed)
+│   ├── houston2-i2-pelican-cache-values.yaml  # Test values for Nautilus deployment (hostPath-backed)
+│   └── itb-osdf-pelican-cache-values.yaml     # Test values for ITB federation (PVC-backed)
 └── templates/
     ├── _helpers.tpl                     # Template helpers:
     │                                    #   - pelican-cache.fullname
     │                                    #   - pelican-cache.labels / selectorLabels
     │                                    #   - pelican-cache.tlsSecretName
-    │                                    #   - pelican-cache.issuerKeyPath
-    │                                    #   - pelican-cache.instanceConfig (generates 50-instance.yaml)
-    ├── deployment.yaml                  # Deployment: 2-3 containers, conditional volumes
+    │                                    #   - pelican-cache.shouldRenderPvc (avoids PVC adoption conflicts)
+    │                                    #   - pelican-cache.validateRequiredValues
+    ├── deployment.yaml                  # Deployment: 2 containers, conditional volumes
     ├── service.yaml                     # LoadBalancer Service
     ├── networkpolicy.yaml               # NetworkPolicy (conditional)
     ├── certificate.yaml                 # cert-manager Certificate (conditional)
-    ├── configmap-default.yaml           # Base pelican.yaml (paths, ports, ConfigLocations)
-    ├── configmap-instance.yaml          # Instance config from values (50-instance.yaml)
+    ├── configmap-pelican.yaml           # Base + instance Pelican config (pelican.yaml + 50-instance.yaml)
     ├── configmap-logrotate.yaml         # Logrotate configuration
     ├── configmap-xrootd.yaml            # Custom xrootd.conf (conditional)
-    ├── pvc-cache-data.yaml              # Cache data PVC (conditional on storageType=pvc)
-    ├── pvc-logging.yaml                 # Logging PVC (always created)
-    ├── pvc-namespace-key.yaml           # Namespace key PVC (conditional on type=pvc)
+    ├── pvc-cache-data.yaml              # Cache data PVC (conditional on type=pvc)
+    ├── pvc-logging.yaml                 # Logging PVC (conditional on logging.persistence.separateVolume)
     ├── pvc-lotman.yaml                  # Lotman PVC (conditional on lotman.enabled)
+    ├── validate.yaml                    # Render-time validation trigger (no resources emitted)
     └── NOTES.txt                        # Post-install notes
 ```
 
 ## Key Design Decisions
 
-1. **Pelican config layering**: Two ConfigMaps → `default-config` (infrastructure paths) and `instance-config` (user settings). Pelican's `ConfigLocations` directive merges them in order. The `config-dir-placeholder` emptyDir exists solely because Pelican requires all `ConfigLocations` directories to exist at startup, even if empty (the `/usr/share/pelican/config.d` location is used by the OSDF overlay layer in the Kustomize deployment but is kept as a placeholder here for compatibility).
+1. **Single Pelican config file**: One ConfigMap (`pelican-config`) contains a single `config.yaml` file, mounted at `/etc/pelican/config.d/config.yaml`. It combines all settings: infrastructure (storage paths, ports, TLS) and user-configurable settings (federation URL, hostname, cache tuning, OIDC, Lotman, logging levels, XRootD settings). Generated by the `pelican-cache.config` helper in `_helpers.tpl`.
 
 2. **Secrets are never chart-managed**: The chart only _references_ pre-existing Secrets. This is intentional — issuer keys, OIDC credentials, TLS certs, and passwords are sensitive and should be managed via SealedSecrets, External Secrets Operator, or manual creation.
 
-3. **Storage flexibility**: Cache data can be PVC or hostPath (production OSDF caches often use hostPath to dedicated NVMe). The namespace/issuer key can be a PVC (Pelican auto-generates the key) or an existing Secret (for key portability across reinstalls).
+3. **Storage flexibility with discriminated union pattern**: Cache data uses a `type` discriminator:
+   - `type: pvc` → uses `cache.pvc.*` settings (supports both creating new PVCs and referencing existing ones via `cache.pvc.existingClaim`)
+   - `type: hostPath` → uses `cache.hostPath.path` for direct node attachment
+  - Issuer key is always sourced from a pre-existing Secret via `issuerKey.existingSecret`.
+   
+   **Why discriminated union, not optional `persistence`?** Unlike typical services where persistence is optional,
+   a cache **requires** persistent storage by design. Using the optional `persistence.enabled` pattern would allow
+   misconfiguration (e.g., accidentally disabling persistence or omitting storage config). The discriminated union
+   pattern forces the user to choose WHERE to persist and ensures all required fields for that branch are explicitly set,
+   preventing silent misconfiguration.
 
-4. **CVMFS redirector defaults to off**: The original base includes it, but the uw-osdf-cache (and most modern deployments) delete it. Defaulting to off matches the common case.
+4. **`Recreate` strategy**: The Deployment uses `Recreate` (not `RollingUpdate`) because Pelican holds an exclusive lock on its cache data directory.
 
-5. **`Recreate` strategy**: The Deployment uses `Recreate` (not `RollingUpdate`) because Pelican holds an exclusive lock on its cache data directory.
+5. **Public service exposure by default**: `service.type` defaults to `LoadBalancer` intentionally. This cache is expected to be publicly reachable; `ClusterIP` is not useful for the primary deployment target, and routing through Ingress adds an extra hop that can hurt throughput and latency.
 
-6. **ConfigMap checksum annotations**: The Deployment template includes `sha256sum` checksums of the ConfigMaps as pod annotations, so config changes trigger automatic rollouts.
+6. **ConfigMap checksum annotation**: The Deployment template includes a `sha256sum` checksum of the Pelican ConfigMap as a pod annotation (`checksum/pelican-config`), so Pelican config changes trigger automatic rollouts.
+
+7. **Open ingress policy by default**: The NetworkPolicy allows ingress from any source (on explicit service ports) intentionally. This cache serves federation clients globally, so restrictive source allowlists are not a sensible default.
+
+8. **Template-time validation**: The chart enforces required values at render time via the `pelican-cache.validateRequiredValues` helper in `_helpers.tpl`. This ensures:
+   - `serverHostname` is set
+  - Storage configurations are complete for their type (e.g., `cache.pvc.storageClass` required for new PVCs, but not if using `cache.pvc.existingClaim`)
+   - Namespace key and logging storage configured appropriately
+   - Optional features (Lotman, OIDC) have their required secrets/storage when enabled
+
+9. **Safe PVC rendering with `lookup`**: The PVC templates use the `pelican-cache.shouldRenderPvc` helper to render only when a PVC is absent or already managed by the same Helm release. This avoids Helm trying to adopt unrelated pre-existing PVCs while still allowing upgrades to manage release-owned PVC metadata.
 
 ## Pelican-Specific Knowledge
 
 - **Pelican** is a data federation platform built on XRootD. A "cache" is a read-through caching proxy.
 - **OSDF** = Open Science Data Federation, the primary Pelican federation run by OSG.
 - **Federation Discovery URL** (`https://osg-htc.org`) tells Pelican where to find the OSDF director and registry.
-- **IssuerKey** is a JWK used to sign tokens. When using a PVC, Pelican auto-generates it on first start. When using an existing Secret, the operator provides a pre-generated key.
+- **IssuerKey** is a JWK used to sign tokens. The chart expects operators to pre-generate it and provide it via an existing Secret.
 - **Lotman** = lot-based storage management (experimental). Manages disk quotas per "lot."
-- **CVMFS port redirector** = a sidecar that redirects legacy CVMFS clients (port 8000) to the Pelican cache.
-- **Cache.StorageLocation** vs **Cache.DataLocation**: In Pelican 7.12+, `StorageLocation` is preferred. `DataLocation` is kept as `UNUSED` for backward compatibility with the config schema.
+- **Cache.StorageLocation**: In Pelican 7.12+, `StorageLocation` is the preferred cache path setting.
 - **`Cache.HighWaterMark` / `LowWaterMark`**: XRootD's cache eviction thresholds. When total disk usage crosses the high watermark, files are evicted until it drops below the low watermark.
 - **`Files*Size` parameters**: Fine-grained diskusage tracking specific to the mount where cache data lives. `FilesMaxSize` must be lower than the low water mark.
 - **`Cache.Concurrency`**: Guidance is 10× the number of CPU cores.
@@ -87,17 +107,74 @@ pelican-cache/
 
 ```bash
 # Lint
-helm lint . --set serverHostname=test.example.com
+helm lint . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
 
 # Render with minimal values
-helm template test . --set serverHostname=test.example.com
+helm template test . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
 
-# Render with full uw-osdf-cache-equivalent values
+# Render with full uw-osdf-cache-equivalent values (hostPath-backed)
 helm template test . -f ci/uw-osdf-cache-values.yaml
 
-# Verify required value validation
-helm template test .   # Should fail with "serverHostname is required"
+# Render with Houston (hostPath) or ITB (PVC) values
+helm template test . -f ci/houston2-i2-pelican-cache-values.yaml
+helm template test . -f ci/itb-osdf-pelican-cache-values.yaml
+
+# Test validation: should fail (first error: cache.pvc.storageClass required since type=pvc is the default)
+helm template test .
+
+# Test validation: should fail with "cache.pvc.storageClass must be nonempty..."
+helm template test . --set serverHostname=test.local --set sitename=test-site --set cache.type=pvc --set logging.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
+
+# Test existingClaim path: should succeed without storageClass
+helm template test . -f ci/uw-osdf-cache-values.yaml --set cache.pvc.existingClaim=my-existing-pvc
 ```
+
+## Storage Configuration (Discriminated Union Pattern)
+
+The `cache` block uses a discriminated union pattern controlled by a `type` field:
+
+### Cache Storage
+
+```yaml
+cache:
+  type: "pvc" | "hostPath"
+  
+  # When type: pvc
+  pvc:
+    existingClaim: ""           # If set, use this existing PVC; ignores storageClass/size
+    storageClass: ""            # Required if existingClaim is empty; defines StorageClass for new PVC
+    size: 1000Gi                # PVC size (used only when creating a new PVC)
+  
+  # When type: hostPath
+  hostPath:
+    path: ""                    # Required; node path to mount
+```
+
+### Issuer Key Storage
+
+```yaml
+issuerKey:
+  existingSecret: ""           # Required; Secret name containing the issuer key
+  secretKey: private-key.pem   # Key within the Secret
+```
+
+## Validation Requirements
+
+The chart enforces these rules at render time:
+
+| Condition | Requirement |
+|-----------|-------------|
+| `cache.type == "pvc"` AND `cache.pvc.existingClaim` is empty | `cache.pvc.storageClass` must be nonempty |
+| `cache.type == "hostPath"` | `cache.hostPath.path` must be nonempty |
+| Always | `issuerKey.existingSecret` must be nonempty |
+| `logging.persistence.separateVolume == true` AND `logging.persistence.existingClaim` is empty | `logging.persistence.storageClass` must be nonempty |
+| `lotman.enabled == true` AND `lotman.pvc.existingClaim` is empty | `lotman.pvc.storageClass` must be nonempty |
+| `oidc.enabled == true` | `oidc.existingSecret` must be nonempty |
+| Always | `sitename` must be nonempty |
+| Always | `webPassword.existingSecret` must be nonempty |
+| Always | `serverHostname` must be nonempty |
+| TLS consistency | `tls.certManager.enabled` and `tls.existingSecret` cannot both be set |
+| TLS completeness | When `tls.certManager.enabled` is false, `tls.existingSecret` must be nonempty |
 
 ## Common Modification Patterns
 
@@ -112,13 +189,17 @@ helm template test .   # Should fail with "serverHostname is required"
 1. Add an `enabled` toggle in `values.yaml`.
 2. Add a `{{- if .Values.newSidecar.enabled }}` block in `deployment.yaml` in the `containers` list.
 3. Add any associated volumes, PVCs, or ConfigMaps with the same conditional guard.
+4. Update validation rules if the sidecar requires resources or Secrets.
 
-### Adding a new volume type
+### Adding support for existing resources (PVC, Secret, etc.)
 
-1. Add values (type, storageClassName, size, existingSecret, etc.) to `values.yaml`.
-2. Add conditional PVC template if needed.
-3. Add the volume to the `volumes` list in `deployment.yaml`.
-4. Add the volumeMount to the appropriate container(s).
+Follow the discriminated union pattern:
+
+1. In `values.yaml`, restructure the relevant block to nest under a key matching the `type` discriminator (e.g., `pvc.*` for PVC config, `secret.*` for Secret config).
+2. Add an `existingClaim` or `existingSecret` field to reference pre-existing resources.
+3. In templates, conditionally skip resource creation if the existing field is set (e.g., skip PVC if `existingClaim` is populated).
+4. In deployment volumes, resolve the claim/secret name correctly based on the discriminator.
+5. Add validation rules in `_helpers.tpl` `validateRequiredValues` helper to enforce that required fields are set for each branch.
 
 ## Upstream Resources
 

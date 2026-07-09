@@ -2,54 +2,54 @@
 # from tiger-osg-config. Secrets must be created separately before install.
 
 serverHostname: "dtn-pas.hous.nrp.internet2.edu"
+sitename: HOUSTON2_INTERNET2_OSDF_CACHE
 
 federation:
   discoveryUrl: "https://osg-htc.org"
-  label: osdf
-
-image:
-  repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
-  tag: "v7.22.0"
-  pullPolicy: IfNotPresent
-
-cvmfsRedirector:
-  enabled: false
 
 # The real deployment uses an existing PVC (pvc-dtn-pas.hous.net.internet2.edu).
 cache:
-  storageType: existingPVC
-  existingPVC: pvc-dtn-pas.hous.net.internet2.edu
-  concurrency: 160
-
-namespaceKey:
-  type: existingSecret
-  existingSecret: houston2-i2-pelican-pelican-cache-key
-  secretKey: issuer.pem
-
-# The real deployment creates its own Certificate (Issuer, not ClusterIssuer)
-# and uses a differently named secret ("certs").
-# We use tls.existingSecret to reference that pre-existing secret.
-certificate:
-  enabled: false
-
-tls:
-  existingSecret: houston2-i2-certs
-
-# hostNetwork: true binds directly to the node's network and disables the Service.
-hostNetwork: true
-
-networkPolicy:
-  enabled: false
-
-resources:
-  cache:
+  image:
+    repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
+    tag: "v7.22.0"
+    pullPolicy: IfNotPresent
+  type: hostPath
+  hostPath:
+    path: /cache
+  resources:
     requests:
       cpu: "16000m"
       memory: "210Gi"
     limits:
       cpu: "16000m"
       memory: "210Gi"
-  logrotate:
+
+cacheConfig:
+  concurrency: 160
+
+issuerKey:
+  existingSecret: houston2-i2-pelican-pelican-cache-key
+  secretKey: issuer.pem
+
+# The real deployment creates its own Certificate (Issuer, not ClusterIssuer)
+# and uses a differently named secret ("certs").
+# We use tls.existingSecret to reference that pre-existing secret.
+tls:
+  certManager:
+    enabled: false
+  existingSecret: houston2-i2-certs
+
+hostNetwork: true
+
+server:
+  webPort: 8444
+
+# Keep network policy disabled for this hostNetwork-based profile.
+networkPolicy:
+  enabled: false
+
+logrotate:
+  resources:
     requests:
       cpu: "1"
       memory: "500M"
@@ -59,28 +59,38 @@ resources:
 
 # Logs go to the cache volume (/cache/pelican/), no separate logging PVC.
 logging:
-  enabled: false
+  persistence:
+    separateVolume: false
+  # NOTE: logging.origin and server.webPort from the real deployment are not
+  # supported as first-class chart values; use extraPelicanConfig if needed.
+
+loggingConfig:
   level: INFO
   cache:
     Pss: warn
     Scitokens: warn
-  origin:
-    Scitokens: warn
-
-server:
-  webPort: 8444
 
 oidc:
   enabled: true
   existingSecret: nrp-oidc-client-secret
+  adminUsers:
+    - "http://cilogon.org/serverE/users/133679"
+    - "http://cilogon.org/serverA/users/10832"
+    - "http://cilogon.org/serverA/users/21441"
+    - "http://cilogon.org/serverA/users/46022246"
+    - "http://cilogon.org/serverA/users/9265706"
+    - "http://cilogon.org/serverE/users/57152"
+    - "http://cilogon.org/serverE/users/130835"
+    - "http://cilogon.org/serverE/users/245993"
+    - "http://cilogon.org/serverB/users/51444962"
 
-adminUsers: "http://cilogon.org/serverE/users/133679 http://cilogon.org/serverA/users/10832 http://cilogon.org/serverA/users/21441 http://cilogon.org/serverA/users/46022246 http://cilogon.org/serverA/users/9265706 http://cilogon.org/serverE/users/57152 http://cilogon.org/serverE/users/130835 http://cilogon.org/serverE/users/245993 http://cilogon.org/serverB/users/51444962"
+webPassword:
+  existingSecret: osdf-web-pass-nrp
+  key: server-web-passwd
 
-webPasswordSecret: osdf-web-pass-nrp
-webPasswordSecretKey: server-web-passwd
+# NOTE: xrootdSitename is not a chart value; the chart uses "sitename" instead.
 
 xrootd:
-  sitename: HOUSTON2_INTERNET2_OSDF_CACHE
   # The real deployment uses an external ConfigMap (xrootdtrt-cfg) for xrootd config.
   # xrootd.extraConfig could inline it here if the content were known.
   extraConfig: ""
@@ -98,10 +108,6 @@ securityContext:
   capabilities:
     add: ["SYS_PTRACE"]
 
-extraEnv:
-  - name: XRD_CURLDISABLEX509
-    value: "1"
-
 # Convert remaining env-var config that doesn't have first-class values.yaml
 # knobs into proper YAML config.
 extraPelicanConfig:
@@ -110,6 +116,10 @@ extraPelicanConfig:
   IssuerKey: "/cache/privpelican/issuer.pem"
   Logging:
     LogLocation: "/cache/pelican/pelican.log"
+    Origin:
+      Scitokens: warn
+  XrootD:
+    ConfigFile: "/etc/pelican/xrootdap/xrootdtrt.cfg"
   Shoveler:
     Enable: true
     Topic: ""

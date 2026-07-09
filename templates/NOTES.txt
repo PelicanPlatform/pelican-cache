@@ -5,18 +5,10 @@ Pelican Cache {{ .Chart.AppVersion }} has been deployed.
   Hostname:   {{ .Values.serverHostname }}
   Federation: {{ .Values.federation.discoveryUrl }}
 
-{{- if .Values.certificate.enabled }}
+{{- if .Values.tls.certManager.enabled }}
 
-TLS certificate will be issued by {{ .Values.certificate.issuerRef.kind }}/{{ .Values.certificate.issuerRef.name }}.
-{{- if .Values.certificate.dnsNames }}
-DNS names:
-{{- range .Values.certificate.dnsNames }}
-  - {{ . }}
-{{- end }}
-{{- else }}
-WARNING: certificate.dnsNames is empty - the Certificate will have no SANs.
-Set certificate.dnsNames to the FQDN(s) of your cache.
-{{- end }}
+TLS certificate will be issued by {{ .Values.tls.certManager.issuerRef.kind }}/{{ .Values.tls.certManager.issuerRef.name }}.
+DNS names: {{ .Values.serverHostname }}{{- range .Values.tls.certManager.dnsNames }}, {{ . }}{{- end }}
 {{- end }}
 
 Check deployment status:
@@ -28,3 +20,36 @@ View logs:
   kubectl -n {{ .Release.Namespace }} logs -l app.kubernetes.io/instance={{ .Release.Name }} -c pelican-cache
 
 For more information: https://docs.pelicanplatform.org/
+
+{{- $fullname := include "pelican-cache.fullname" . }}
+{{- $loggingPersist := .Values.logging.persistence.separateVolume -}}
+
+{{- $createdPVCs := list -}}
+
+{{- $cachePvcName := printf "%s-data" $fullname -}}
+{{- $cacheShouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $cachePvcName) | trim) "true" -}}
+{{- if and (eq .Values.cache.type "pvc") (not .Values.cache.pvc.existingClaim) $cacheShouldRender -}}
+{{- $createdPVCs = append $createdPVCs $cachePvcName -}}
+{{- end -}}
+
+{{- $loggingPvcName := printf "%s-logging" $fullname -}}
+{{- $loggingShouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $loggingPvcName) | trim) "true" -}}
+{{- if and $loggingPersist (not .Values.logging.persistence.existingClaim) $loggingShouldRender -}}
+{{- $createdPVCs = append $createdPVCs $loggingPvcName -}}
+{{- end -}}
+
+{{- $lotmanPvcName := printf "%s-lotman" $fullname -}}
+{{- $lotmanShouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $lotmanPvcName) | trim) "true" -}}
+{{- if and .Values.lotman.enabled (not .Values.lotman.pvc.existingClaim) $lotmanShouldRender -}}
+{{- $createdPVCs = append $createdPVCs $lotmanPvcName -}}
+{{- end -}}
+
+{{- if gt (len $createdPVCs) 0 }}
+
+This chart created the following PVCs:
+{{- range $createdPVCs }}
+  - {{ . }}
+{{- end }}
+
+These PVCs are annotated with helm.sh/resource-policy=keep and will NOT be deleted on uninstall.
+{{- end }}

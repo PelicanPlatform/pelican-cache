@@ -9,8 +9,8 @@ data:
     /var/log/pelican/*.log {
         compress
         copytruncate
-        size {{ .Values.logrotate.size }}
+        size {{ .Values.loggingConfig.rotateSize }}
         missingok
         notifempty
-        rotate {{ .Values.logrotate.rotate }}
+        rotate {{ .Values.loggingConfig.rotateCount }}
     }

@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pelican-cache.fullname" . }}-pelican-config
+  labels:
+    {{- include "pelican-cache.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    ---
+    Cache:
+      StorageLocation: /cache
+      Port: {{ .Values.server.cachePort }}
+
+    Federation:
+      DiscoveryUrl: {{ .Values.federation.discoveryUrl | quote }}
+
+    Server:
+      WebPort: {{ .Values.server.webPort }}
+{{/* We cannot mount the TLS secret at /etc/pelican/certificates because that
+directory would become read-only and Pelican needs to write its own CA there.
+So we mount it at cert-orig instead (see deployment.yaml). */}}
+      TlsCertificate: "/etc/pelican/cert-orig/tls.crt"
+      TlsKey: "/etc/pelican/cert-orig/tls.key"
+      Hostname: {{ required "serverHostname is required" .Values.serverHostname | quote }}
+    {{- if .Values.oidc.adminUsers }}
+      UIAdminUsers:
+        {{- toYaml .Values.oidc.adminUsers | nindent 8 }}
+    {{- end }}
+    {{- if .Values.webPassword.existingSecret }}
+      UIPasswordFile: /etc/pelican/server-web-passwd
+    {{- end }}
+
+    {{- if .Values.cacheConfig.blocksToPrefetch }}
+    Cache.BlocksToPrefetch: {{ .Values.cacheConfig.blocksToPrefetch }}
+    {{- end }}
+    {{- if .Values.oidc.enabled }}
+    Cache.EnableOIDC: true
+    {{- end }}
+    {{- if .Values.lotman.enabled }}
+    Cache.EnableLotman: true
+    {{- end }}
+    {{- if .Values.cacheConfig.highWaterMark }}
+    Cache.HighWaterMark: {{ .Values.cacheConfig.highWaterMark }}
+    {{- end }}
+    {{- if .Values.cacheConfig.lowWaterMark }}
+    Cache.LowWaterMark: {{ .Values.cacheConfig.lowWaterMark }}
+    {{- end }}
+    {{- if .Values.cacheConfig.filesMaxSize }}
+    Cache.FilesMaxSize: {{ .Values.cacheConfig.filesMaxSize }}
+    {{- end }}
+    {{- if .Values.cacheConfig.filesNominalSize }}
+    Cache.FilesNominalSize: {{ .Values.cacheConfig.filesNominalSize }}
+    {{- end }}
+    {{- if .Values.cacheConfig.filesBaseSize }}
+    Cache.FilesBaseSize: {{ .Values.cacheConfig.filesBaseSize }}
+    {{- end }}
+    {{- if .Values.cacheConfig.concurrency }}
+    Cache.Concurrency: {{ .Values.cacheConfig.concurrency }}
+    {{- end }}
+
+    {{- if .Values.oidc.enabled }}
+
+    OIDC:
+      ClientIDFile: /etc/pelican/oidc/client.id
+      ClientSecretFile: /etc/pelican/oidc/client.secret
+    {{- end }}
+
+    Logging:
+      LogLocation: "/var/log/pelican/pelican.log"
+      Level: {{ .Values.loggingConfig.level | quote }}
+    {{- if .Values.loggingConfig.cache }}
+      Cache:
+        {{- toYaml .Values.loggingConfig.cache | nindent 8 }}
+    {{- end }}
+
+    Topology.DisableCacheX509: true
+
+    {{- if .Values.lotman.enabled }}
+
+    Lotman:
+      LotHome: /var/lib/pelican/lotman
+    {{- end }}
+
+    XrootD.Sitename: {{ required "sitename is required" .Values.sitename | quote }}
+    {{- if .Values.xrootd.extraConfig }}
+    XrootD.ConfigFile: /etc/pelican/xrootd.conf
+    {{- end }}
+
+    {{- if .Values.extraPelicanConfig }}
+
+    {{ toYaml .Values.extraPelicanConfig }}
+    {{- end }}

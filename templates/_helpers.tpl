@@ -35,6 +35,7 @@ Common labels
 {{- define "pelican-cache.labels" -}}
 helm.sh/chart: {{ include "pelican-cache.chart" . }}
 {{ include "pelican-cache.selectorLabels" . }}
+pelicanplatform.org/federation: {{ include "pelican-cache.sanitizedFederationUrl" . | quote }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -47,10 +48,21 @@ Selector labels
 {{- define "pelican-cache.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "pelican-cache.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-app: pelican-cache
-{{- if .Values.federation.label }}
-federation: {{ .Values.federation.label }}
 {{- end }}
+
+{{/*
+Sanitize federation discovery URL for use as a label value.
+
+Kubernetes label values must be alphanumeric or contain `-`, `_`, or `.`.
+This helper:
+1. Strips any URI scheme (e.g., `https://`, `http://`, `ftp://`, etc.)
+2. Replaces `/` and `:` with `_`
+*/}}
+{{- define "pelican-cache.sanitizedFederationUrl" -}}
+{{- $url := .Values.federation.discoveryUrl }}
+{{- $stripped := regexReplaceAll "^[^:]+://" $url "" -}}
+{{- $stripped = regexReplaceAll "[^A-Za-z0-9._-]" $stripped "_" -}}
+{{- $stripped }}
 {{- end }}
 
 {{/*
@@ -65,96 +77,102 @@ TLS Secret name - either from cert-manager Certificate or an existing Secret
 {{- end }}
 
 {{/*
-IssuerKey path based on namespaceKey.type
+Return true when a PVC should be rendered by this chart.
+
+Behavior:
+- If the PVC does not exist yet, render it.
+- If the PVC already exists and is managed by this same Helm release, render it
+  so upgrades can continue to manage metadata.
+- Otherwise, skip rendering to avoid creation/adoption conflicts.
 */}}
-{{- define "pelican-cache.issuerKeyPath" -}}
-{{- if eq .Values.namespaceKey.type "existingSecret" -}}
-/etc/pelican/issuer-keys/{{ .Values.namespaceKey.secretKey }}
+{{- define "pelican-cache.shouldRenderPvc" -}}
+{{- $root := .root -}}
+{{- $pvcName := .pvcName -}}
+{{- $existing := lookup "v1" "PersistentVolumeClaim" $root.Release.Namespace $pvcName -}}
+{{- if not $existing -}}
+true
 {{- else -}}
-/etc/pelican/jwks/issuer.jwk
+{{- $annotations := default (dict) $existing.metadata.annotations -}}
+{{- $labels := default (dict) $existing.metadata.labels -}}
+{{- if and
+  (eq (index $annotations "meta.helm.sh/release-name") $root.Release.Name)
+  (eq (index $annotations "meta.helm.sh/release-namespace") $root.Release.Namespace)
+  (eq (index $labels "app.kubernetes.io/managed-by") "Helm") -}}
+true
+{{- else -}}
+false
+{{- end -}}
 {{- end -}}
 {{- end }}
 
 {{/*
-Generate the Pelican instance configuration (50-instance.yaml content).
-This is the user-configurable layer that Pelican loads from /etc/pelican/config.d/.
+Validate required values and conditional requirements.
 */}}
-{{- define "pelican-cache.instanceConfig" -}}
----
-Federation:
-  DiscoveryUrl: {{ .Values.federation.discoveryUrl | quote }}
+{{- define "pelican-cache.validateRequiredValues" -}}
+{{- $cacheStorageType := .Values.cache.type | default "" }}
+{{- $loggingPersist := .Values.logging.persistence.separateVolume }}
 
-Server:
-  Hostname: {{ required "serverHostname is required" .Values.serverHostname | quote }}
-{{- if .Values.adminUsers }}
-  UIAdminUsers: {{ .Values.adminUsers | quote }}
-{{- end }}
-{{- if .Values.webPasswordSecret }}
-  UIPasswordFile: /etc/pelican/web-passwd/password
+{{- if eq $cacheStorageType "pvc" }}
+  {{- if not .Values.cache.pvc.existingClaim }}
+    {{- if eq (trim (default "" .Values.cache.pvc.storageClass)) "" }}
+      {{- fail "cache.pvc.storageClass must be nonempty when cache.type is \"pvc\" and cache.pvc.existingClaim is not set" }}
+    {{- end }}
+  {{- end }}
 {{- end }}
 
-Cache:
-{{- if .Values.cache.blocksToPrefetch }}
-  BlocksToPrefetch: {{ .Values.cache.blocksToPrefetch }}
-{{- end }}
-{{- if .Values.oidc.enabled }}
-  EnableOIDC: true
-{{- end }}
-{{- if .Values.lotman.enabled }}
-  EnableLotman: true
-{{- end }}
-{{- if .Values.cache.highWaterMark }}
-  HighWaterMark: {{ .Values.cache.highWaterMark }}
-{{- end }}
-{{- if .Values.cache.lowWaterMark }}
-  LowWaterMark: {{ .Values.cache.lowWaterMark }}
-{{- end }}
-{{- if .Values.cache.filesMaxSize }}
-  FilesMaxSize: {{ .Values.cache.filesMaxSize }}
-{{- end }}
-{{- if .Values.cache.filesNominalSize }}
-  FilesNominalSize: {{ .Values.cache.filesNominalSize }}
-{{- end }}
-{{- if .Values.cache.filesBaseSize }}
-  FilesBaseSize: {{ .Values.cache.filesBaseSize }}
-{{- end }}
-{{- if .Values.cache.concurrency }}
-  Concurrency: {{ .Values.cache.concurrency }}
+{{- if eq $cacheStorageType "hostPath" }}
+  {{- if eq (trim (default "" .Values.cache.hostPath.path)) "" }}
+    {{- fail "cache.hostPath.path must be nonempty when cache.type is \"hostPath\"" }}
+  {{- end }}
 {{- end }}
 
-{{- if .Values.oidc.enabled }}
-
-OIDC:
-  ClientIDFile: /etc/pelican/oidc/client.id
-  ClientSecretFile: /etc/pelican/oidc/client.secret
+{{- if eq (trim (default "" .Values.issuerKey.existingSecret)) "" }}
+  {{- fail "issuerKey.existingSecret must be nonempty" }}
 {{- end }}
 
-Logging:
-  Level: {{ .Values.logging.level | quote }}
-{{- if .Values.logging.cache }}
-  Cache:
-{{ toYaml .Values.logging.cache | indent 4 }}
+{{- if eq (trim (default "" .Values.sitename)) "" }}
+  {{- fail "sitename must be nonempty" }}
+{{- end }}
+
+{{- if $loggingPersist }}
+  {{- if not .Values.logging.persistence.existingClaim }}
+    {{- if eq (trim (default "" .Values.logging.persistence.storageClass)) "" }}
+      {{- fail "logging.persistence.storageClass must be nonempty when logging.persistence.separateVolume is true and logging.persistence.existingClaim is not set" }}
+    {{- end }}
+  {{- end }}
 {{- end }}
 
 {{- if .Values.lotman.enabled }}
-
-Lotman:
-  LotHome: /var/lib/pelican/lotman
+  {{- if not .Values.lotman.pvc.existingClaim }}
+    {{- if eq (trim (default "" .Values.lotman.pvc.storageClass)) "" }}
+      {{- fail "lotman.pvc.storageClass must be nonempty when lotman.enabled is true and lotman.pvc.existingClaim is not set" }}
+    {{- end }}
+  {{- end }}
 {{- end }}
 
-{{- if or .Values.xrootd.sitename .Values.xrootd.extraConfig }}
-
-XrootD:
-{{- if .Values.xrootd.sitename }}
-  Sitename: {{ .Values.xrootd.sitename | quote }}
-{{- end }}
-{{- if .Values.xrootd.extraConfig }}
-  ConfigFile: /etc/pelican/xrootd.conf
-{{- end }}
+{{- if .Values.oidc.enabled }}
+  {{- if eq (trim (default "" .Values.oidc.existingSecret)) "" }}
+    {{- fail "oidc.existingSecret must be nonempty when oidc.enabled is true" }}
+  {{- end }}
+  {{- if eq (len .Values.oidc.adminUsers) 0 }}
+    {{- fail "oidc.adminUsers must be nonempty when oidc.enabled is true" }}
+  {{- end }}
 {{- end }}
 
-{{- if .Values.extraPelicanConfig }}
+{{- if and (not .Values.oidc.enabled) (gt (len .Values.oidc.adminUsers) 0) }}
+  {{- fail "oidc.enabled must be true when oidc.adminUsers is nonempty" }}
+{{- end }}
 
-{{ toYaml .Values.extraPelicanConfig }}
+{{- if eq (trim (default "" .Values.webPassword.existingSecret)) "" }}
+  {{- fail "webPassword.existingSecret must be nonempty" }}
+{{- end }}
+
+{{- if and .Values.tls.certManager.enabled .Values.tls.existingSecret }}
+  {{- fail "tls.existingSecret and tls.certManager.enabled cannot both be set; choose exactly one TLS source" }}
+{{- end }}
+
+{{- if and (not .Values.tls.certManager.enabled) (eq (trim (default "" .Values.tls.existingSecret)) "") }}
+  {{- fail "tls.existingSecret must be nonempty when tls.certManager.enabled is false" }}
 {{- end }}
 {{- end }}
+

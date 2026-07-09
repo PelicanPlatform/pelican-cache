@@ -2,21 +2,24 @@
 # Secrets must be created separately before installing the chart.
 
 serverHostname: "osdf-uw-cache.svc.osg-htc.org"
+sitename: CHTC_PELICAN_CACHE
 
 federation:
   discoveryUrl: "https://osg-htc.org"
-  label: osdf
-
-image:
-  repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
-  tag: "v7.23.0"
-
-cvmfsRedirector:
-  enabled: false
 
 cache:
-  storageType: hostPath
-  hostPath: /srv/pelican-cache/
+  image:
+    repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
+    tag: "v7.23.0"
+  type: hostPath
+  hostPath:
+    path: /srv/pelican-cache/
+  resources:
+    requests:
+      cpu: "24"
+      memory: "48Gi"
+
+cacheConfig:
   blocksToPrefetch: 10
   concurrency: 240
   highWaterMark: 27000g
@@ -25,19 +28,19 @@ cache:
   filesNominalSize: 17000g
   filesBaseSize: 16500g
 
-namespaceKey:
-  type: existingSecret
+issuerKey:
   existingSecret: uw-osdf-cache-issuer-key
   secretKey: issuer.pem
 
-certificate:
-  enabled: true
-  issuerRef:
-    name: letsencrypt-prod
-    kind: ClusterIssuer
-  dnsNames:
-    - osdf-uw-cache.svc.osdf-prod.chtc.io
-    - osdf-uw-cache.svc.osg-htc.org
+tls:
+  certManager:
+    enabled: true
+    issuerRef:
+      name: letsencrypt-prod
+      kind: ClusterIssuer
+    dnsNames:
+      - osdf-uw-cache.svc.osdf-prod.chtc.io
+      - osdf-uw-cache.svc.osg-htc.org
 
 service:
   type: LoadBalancer
@@ -46,12 +49,8 @@ service:
     external-dns.alpha.kubernetes.io/hostname: osdf-uw-cache.svc.osdf-prod.chtc.io
     metallb.universe.tf/address-pool: tiger-vlan5
 
-resources:
-  cache:
-    requests:
-      cpu: "24"
-      memory: "48Gi"
-  logrotate:
+logrotate:
+  resources:
     requests:
       cpu: "1"
       memory: "500M"
@@ -60,9 +59,13 @@ resources:
       memory: "2G"
 
 logging:
+  persistence:
+    separateVolume: true
+    storageClass: 3x-replica-hdd-raddus
+    size: 50Gi
+
+loggingConfig:
   level: "debug"
-  storageClassName: 3x-replica-hdd-raddus
-  pvcSize: 50Gi
   cache:
     Pss: "debug"
     Pfc: "debug"
@@ -70,20 +73,26 @@ logging:
 
 lotman:
   enabled: true
-  storageClassName: 3x-replica-hdd-raddus
-  pvcSize: 10Gi
+  pvc:
+    storageClass: 3x-replica-hdd-raddus
+    size: 10Gi
 
 oidc:
   enabled: true
   existingSecret: osdf-component-oidc
+  adminUsers:
+    - "http://cilogon.org/serverE/users/133679"
+    - "http://cilogon.org/serverA/users/10832"
+    - "http://cilogon.org/serverA/users/21441"
+    - "http://cilogon.org/serverA/users/46022246"
+    - "http://cilogon.org/serverA/users/9265706"
+    - "http://cilogon.org/serverE/users/57152"
 
-adminUsers: "http://cilogon.org/serverE/users/133679 http://cilogon.org/serverA/users/10832 http://cilogon.org/serverA/users/21441 http://cilogon.org/serverA/users/46022246 http://cilogon.org/serverA/users/9265706 http://cilogon.org/serverE/users/57152"
-
-webPasswordSecret: osdf-prod-pelican-webserver-passwd
-webPasswordSecretKey: osdf-pelican-webserver-passwd
+webPassword:
+  existingSecret: osdf-prod-pelican-webserver-passwd
+  key: osdf-pelican-webserver-passwd
 
 xrootd:
-  sitename: CHTC_PELICAN_CACHE
   extraConfig: |
     # Set max threads
     xrd.sched maxt 20000
@@ -100,6 +109,4 @@ securityContext:
   capabilities:
     add: ["SYS_PTRACE"]
 
-extraEnv:
-  - name: XRD_CURLDISABLEX509
-    value: "1"
+extraEnv: []

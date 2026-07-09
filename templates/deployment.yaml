@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "pelican-cache.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: 1
   strategy:
     type: Recreate
   selector:
@@ -14,8 +14,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/default-config: {{ include (print $.Template.BasePath "/configmap-default.yaml") . | sha256sum }}
-        checksum/instance-config: {{ include (print $.Template.BasePath "/configmap-instance.yaml") . | sha256sum }}
+        checksum/pelican-config: {{ include (print $.Template.BasePath "/configmap-pelican.yaml") . | sha256sum }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -23,6 +22,7 @@ spec:
         {{- include "pelican-cache.labels" . | nindent 8 }}
     spec:
       enableServiceLinks: false
+      hostNetwork: {{ .Values.hostNetwork }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -42,10 +42,14 @@ spec:
       containers:
         # ---- Main Pelican cache container ----
         - name: pelican-cache
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.cache.image.repository }}:{{ .Values.cache.image.tag | default .Chart.AppVersion }}"
+          {{- if .Values.sleep }}
+          command: ["sleep", "infinity"]
+          {{- else }}
           args: []
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with .Values.resources.cache }}
+          {{- end }}
+          imagePullPolicy: {{ .Values.cache.image.pullPolicy }}
+          {{- with .Values.cache.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -59,34 +63,33 @@ spec:
           {{- end }}
           ports:
             - name: pelican
-              containerPort: 8443
+              containerPort: {{ .Values.server.cachePort }}
               protocol: TCP
             - name: pelican-webui
-              containerPort: 443
+              containerPort: {{ .Values.server.webPort }}
               protocol: TCP
           volumeMounts:
-            # Pelican requires ConfigLocations directories to exist
-            - name: config-dir-placeholder
-              mountPath: /usr/share/pelican/config.d
-            - name: default-config
-              mountPath: /etc/pelican/pelican.yaml
-              subPath: pelican.yaml
-            - name: instance-config
-              mountPath: /etc/pelican/config.d
-            - name: cache-data
+            - name: pelican-config
+              mountPath: /etc/pelican/config.d/config.yaml
+              subPath: config.yaml
+            - name: data
               mountPath: /cache
+            {{- if .Values.logging.persistence.separateVolume }}
             - name: logging-volume
               mountPath: /var/log/pelican
-            {{- if eq .Values.namespaceKey.type "existingSecret" }}
-            - name: namespace-key
-              readOnly: true
-              mountPath: /etc/pelican/issuer-keys/{{ .Values.namespaceKey.secretKey }}
-              subPath: {{ .Values.namespaceKey.secretKey }}
             {{- else }}
-            - name: namespace-key
-              mountPath: /etc/pelican/jwks
+            - name: data
+              mountPath: /var/log
             {{- end }}
+            - name: issuer-key
+              readOnly: true
+              mountPath: /etc/pelican/issuer-keys/issuer.pem
+              subPath: {{ required "issuerKey.secretKey is required" .Values.issuerKey.secretKey }}
             - name: tls-cert
+{{/* We cannot mount the host cert secret at /etc/pelican/certificates
+because that would make that directory read-only and Pelican needs to write
+its own CA there.  So we use a different directory here and in the Pelican config.
+*/}}
               mountPath: /etc/pelican/cert-orig
             {{- if .Values.lotman.enabled }}
             - name: lotman-data
@@ -102,11 +105,11 @@ spec:
               subPath: client.secret
               readOnly: true
             {{- end }}
-            {{- if .Values.webPasswordSecret }}
+            {{- if .Values.webPassword.existingSecret }}
             - name: web-passwd
               readOnly: true
-              mountPath: /etc/pelican/web-passwd/password
-              subPath: {{ .Values.webPasswordSecretKey | default "password" }}
+              mountPath: /etc/pelican/server-web-passwd
+              subPath: {{ .Values.webPassword.key | default "server-web-passwd" }}
             {{- end }}
             {{- if .Values.xrootd.extraConfig }}
             - name: xrootd-config
@@ -117,38 +120,26 @@ spec:
             {{- toYaml . | nindent 12 }}
             {{- end }}
 
-        {{- if .Values.cvmfsRedirector.enabled }}
-        # ---- CVMFS port redirector sidecar ----
-        - name: cvmfs-redirector
-          image: "{{ .Values.cvmfsRedirector.image.repository }}:{{ .Values.cvmfsRedirector.image.tag }}"
-          imagePullPolicy: Always
-          ports:
-            - name: pelican-cvmfs
-              containerPort: 8000
-          {{- with .Values.cvmfsRedirector.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-        {{- end }}
-
         # ---- Logrotate sidecar ----
         - name: logrotate
-          image: "{{ .Values.logrotateImage.repository }}:{{ .Values.logrotateImage.tag }}"
-          {{- with .Values.resources.logrotate }}
+          image: "{{ .Values.logrotate.image.repository }}:{{ .Values.logrotate.image.tag }}"
+          imagePullPolicy: Always
+          {{- with .Values.logrotate.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
+            {{- if .Values.logging.persistence.separateVolume }}
             - name: logging-volume
               mountPath: /var/log/pelican
+            {{- else }}
+            - name: data
+              mountPath: /var/log
+            {{- end }}
             - name: log-rotate-config
               mountPath: /etc/logrotate.d/
 
       volumes:
-        # Placeholder so /usr/share/pelican/config.d exists (required by ConfigLocations)
-        - name: config-dir-placeholder
-          emptyDir: {}
-
         # TLS certificate (from cert-manager or existing Secret)
         - name: tls-cert
           secret:
@@ -161,19 +152,14 @@ spec:
                 path: tls.key
                 mode: 0600
 
-        # Base Pelican configuration (paths, ports, ConfigLocations)
-        - name: default-config
+        # Pelican configuration
+        - name: pelican-config
           configMap:
-            name: {{ include "pelican-cache.fullname" . }}-default-config
+            name: {{ include "pelican-cache.fullname" . }}-pelican-config
             items:
-              - key: pelican.yaml
-                path: pelican.yaml
+              - key: config.yaml
+                path: config.yaml
                 mode: 0644
-
-        # Instance-specific Pelican configuration
-        - name: instance-config
-          configMap:
-            name: {{ include "pelican-cache.fullname" . }}-instance-config
 
         # Logrotate configuration
         - name: log-rotate-config
@@ -181,42 +167,38 @@ spec:
             name: {{ include "pelican-cache.fullname" . }}-logrotate
 
         # Cache data volume (PVC or hostPath)
-        {{- if eq .Values.cache.storageType "pvc" }}
-        - name: cache-data
+        {{- if eq .Values.cache.type "pvc" }}
+        - name: data
           persistentVolumeClaim:
-            claimName: {{ include "pelican-cache.fullname" . }}-cache-data
+            claimName: {{ if .Values.cache.pvc.existingClaim }}{{ .Values.cache.pvc.existingClaim }}{{ else }}{{ include "pelican-cache.fullname" . }}-data{{ end }}
         {{- else }}
-        - name: cache-data
+        - name: data
           hostPath:
-            path: {{ required "cache.hostPath is required when cache.storageType is hostPath" .Values.cache.hostPath }}
+            path: {{ required "cache.hostPath.path is required when cache.type is hostPath" .Values.cache.hostPath.path }}
             type: Directory
         {{- end }}
 
         # Logging volume
+        {{- if .Values.logging.persistence.separateVolume }}
         - name: logging-volume
           persistentVolumeClaim:
-            claimName: {{ include "pelican-cache.fullname" . }}-logging
-
-        # Namespace / issuer key
-        {{- if eq .Values.namespaceKey.type "existingSecret" }}
-        - name: namespace-key
-          secret:
-            secretName: {{ required "namespaceKey.existingSecret is required when type is existingSecret" .Values.namespaceKey.existingSecret }}
-            items:
-              - key: {{ .Values.namespaceKey.secretKey }}
-                path: {{ .Values.namespaceKey.secretKey }}
-                mode: 0600
-        {{- else }}
-        - name: namespace-key
-          persistentVolumeClaim:
-            claimName: {{ include "pelican-cache.fullname" . }}-namespace-key
+            claimName: {{ if .Values.logging.persistence.existingClaim }}{{ .Values.logging.persistence.existingClaim }}{{ else }}{{ include "pelican-cache.fullname" . }}-logging{{ end }}
         {{- end }}
+
+        # Issuer key
+        - name: issuer-key
+          secret:
+            secretName: {{ required "issuerKey.existingSecret is required" .Values.issuerKey.existingSecret }}
+            items:
+              - key: {{ required "issuerKey.secretKey is required" .Values.issuerKey.secretKey }}
+                path: {{ .Values.issuerKey.secretKey }}
+                mode: 0600
 
         {{- if .Values.lotman.enabled }}
         # Lotman persistent data
         - name: lotman-data
           persistentVolumeClaim:
-            claimName: {{ include "pelican-cache.fullname" . }}-lotman
+            claimName: {{ if .Values.lotman.pvc.existingClaim }}{{ .Values.lotman.pvc.existingClaim }}{{ else }}{{ include "pelican-cache.fullname" . }}-lotman{{ end }}
         {{- end }}
 
         {{- if .Values.oidc.enabled }}
@@ -231,14 +213,14 @@ spec:
                 path: client.secret
         {{- end }}
 
-        {{- if .Values.webPasswordSecret }}
+        {{- if .Values.webPassword.existingSecret }}
         # Web UI password
         - name: web-passwd
           secret:
-            secretName: {{ .Values.webPasswordSecret }}
+            secretName: {{ .Values.webPassword.existingSecret }}
             items:
-              - key: {{ .Values.webPasswordSecretKey | default "password" }}
-                path: {{ .Values.webPasswordSecretKey | default "password" }}
+              - key: {{ .Values.webPassword.key | default "server-web-passwd" }}
+                path: {{ .Values.webPassword.key | default "server-web-passwd" }}
                 mode: 0600
         {{- end }}
 

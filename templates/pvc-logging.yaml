@@ -1,15 +1,22 @@
+{{- $pvcName := printf "%s-logging" (include "pelican-cache.fullname" .) -}}
+{{- $shouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $pvcName) | trim) "true" -}}
+{{- $loggingPersist := .Values.logging.persistence.separateVolume -}}
+{{- if and $loggingPersist (not .Values.logging.persistence.existingClaim) $shouldRender }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "pelican-cache.fullname" . }}-logging
+  name: {{ $pvcName }}
+  annotations:
+    helm.sh/resource-policy: keep
   labels:
     {{- include "pelican-cache.labels" . | nindent 4 }}
 spec:
-  {{- if .Values.logging.storageClassName }}
-  storageClassName: {{ .Values.logging.storageClassName | quote }}
+  {{- if .Values.logging.persistence.storageClass }}
+  storageClassName: {{ .Values.logging.persistence.storageClass | quote }}
   {{- end }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.logging.pvcSize }}
+      storage: {{ .Values.logging.persistence.size }}
+{{- end }}

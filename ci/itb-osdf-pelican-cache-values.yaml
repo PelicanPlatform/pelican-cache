@@ -2,36 +2,42 @@
 # Secrets must be created separately before installing the chart.
 
 serverHostname: "itb-osdf-pelican-cache.osdf-dev.chtc.io"
+sitename: ITB-OSDF-PELICAN-CACHE
 
 federation:
-  discoveryUrl: "https://discovery.osdf-dev.chtc.io"
-  label: osdf
-
-image:
-  repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
-  tag: "v7.23.0"
+  discoveryUrl: "https://osdf-itb.osg-htc.org"
 
 cvmfsRedirector:
   enabled: false
 
 cache:
-  storageType: pvc
-  storageClassName: 3x-replica-hdd-raddus
-  pvcSize: 100Gi
+  image:
+    repository: hub.opensciencegrid.org/pelican_platform/osdf-cache
+    tag: "v7.23.0"
+  type: pvc
+  pvc:
+    storageClass: 3x-replica-hdd-raddus
+    size: 100Gi
+  resources:
+    requests:
+      cpu: "8"
+      memory: "16Gi"
+
+cacheConfig:
   concurrency: 40
 
-namespaceKey:
-  type: existingSecret
+issuerKey:
   existingSecret: itb-osdf-pelican-cache-issuer-keys
   secretKey: issuer.pem
 
-certificate:
-  enabled: true
-  issuerRef:
-    name: letsencrypt-prod
-    kind: ClusterIssuer
-  dnsNames:
-    - itb-osdf-pelican-cache.osdf-dev.chtc.io
+tls:
+  certManager:
+    enabled: true
+    issuerRef:
+      name: letsencrypt-prod
+      kind: ClusterIssuer
+    dnsNames:
+      - itb-osdf-pelican-cache.osdf-dev.chtc.io
 
 service:
   type: LoadBalancer
@@ -39,25 +45,20 @@ service:
     external-dns.alpha.kubernetes.io/hostname: itb-osdf-pelican-cache.osdf-dev.chtc.io
     metallb.universe.tf/address-pool: tiger-vlan5
 
-resources:
-  cache:
-    requests:
-      cpu: "8"
-      memory: "16Gi"
-
 logging:
+  persistence:
+    separateVolume: true
+    storageClass: 3x-replica-block
+    size: 10Gi
+
+loggingConfig:
   level: "debug"
-  storageClassName: 3x-replica-block
-  pvcSize: 10Gi
   cache:
     Scitokens: debug
     Pss: debug
     Http: debug
     Ofs: debug
     Pfc: debug
-
-xrootd:
-  sitename: ITB-OSDF-PELICAN-CACHE
 
 nodeSelector:
   datacenter: wid-vlan5
@@ -70,8 +71,9 @@ securityContext:
   capabilities:
     add: ["SYS_PTRACE"]
 
-webPasswordSecret: itb-pelican-server-web-passwd
-webPasswordSecretKey: server-web-passwd
+webPassword:
+  existingSecret: itb-pelican-server-web-passwd
+  key: server-web-passwd
 
 # Settings not directly parameterized by the chart; merged via extraPelicanConfig.
 extraPelicanConfig:
