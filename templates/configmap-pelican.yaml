@@ -87,6 +87,5 @@ So we mount it at cert-orig instead (see deployment.yaml). */}}
     {{- end }}
 
     {{- if .Values.extraPelicanConfig }}
-
-    {{ toYaml .Values.extraPelicanConfig }}
+    {{- toYaml .Values.extraPelicanConfig | nindent 4 }}
     {{- end }}
