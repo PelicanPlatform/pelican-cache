@@ -97,7 +97,7 @@ Both of these values are required for the cache to be able to identify itself to
 Cache persistence must be specified; you must choose a value for `cache.type`, either `pvc` or `hostPath`,
 and then fill out the fields in the appropriate subsections.
 
-**PVC option** (`cache.type: pvc`): Use Kubernetes persistent volumes, creating new or referencing existing PVCs.  
+**PVC option** (`cache.type: pvc`): Use Kubernetes persistent volumes, creating new or referencing existing PVCs.
 
 If using a PVC, you can use an existing PVC or have the chart create a new one.
 If using an existing PVC, you must set `cache.pvc.existingClaim` to the name of the PVC.
@@ -147,15 +147,54 @@ Set `issuerKey.existingSecret` to that Secret name.
 | `webPassword.key` | `server-web-passwd` | Key within the web password Secret |
 | `oidc.enabled` | `false` | Enable OIDC authentication |
 | `oidc.existingSecret` | `""` | Secret with `client.id` and `client.secret` keys |
-| `oidc.adminUsers` | `[]` | OIDC `sub` claims for UI admins; must be nonempty when `oidc.enabled=true` |
+| `oidc.adminUsers` | `[]` | OIDC `sub` claims for UI admins; when OIDC is enabled, either this or `oidc.adminGroups` (or both) must be nonempty |
+| `oidc.adminGroups` | `[]` | CILogon group names for UI admins; when OIDC is enabled, either this or `oidc.adminUsers` (or both) must be nonempty |
 
 You must create a secret containing a file named `server-web-passwd` that was created by running `pelican generate password`
 and specify that as `webPassword.existingSecret`.
 
 You may also have admins log in via OIDC. In this case, set `oidc.enabled` to `true`,
 add a Secret for contacting the Identity Provider with an OIDC client ID and secret
-(`client.id` and `client.secret`, respectively), and add a list of `sub` claims to
-`oidc.adminUsers`.
+(`client.id` and `client.secret`, respectively), and set one or both of:
+
+- `oidc.adminUsers` (a list of OIDC `sub` claims)
+- `oidc.adminGroups` (a list of CILogon group names)
+
+Validation rules for admin authorization are:
+
+- If `oidc.enabled=true`, at least one of `oidc.adminUsers` or `oidc.adminGroups` must be nonempty.
+- If either `oidc.adminUsers` or `oidc.adminGroups` is nonempty, then `oidc.enabled` must be `true`.
+
+Example OIDC configurations:
+
+```yaml
+# Users-only admin authorization
+oidc:
+  enabled: true
+  existingSecret: my-oidc-client-secret
+  adminUsers:
+    - "http://cilogon.org/serverA/users/12345"
+```
+
+```yaml
+# Groups-only admin authorization
+oidc:
+  enabled: true
+  existingSecret: my-oidc-client-secret
+  adminGroups:
+    - "osg-ops"
+```
+
+```yaml
+# Mixed users + groups admin authorization
+oidc:
+  enabled: true
+  existingSecret: my-oidc-client-secret
+  adminUsers:
+    - "http://cilogon.org/serverA/users/12345"
+  adminGroups:
+    - "osg-ops"
+```
 
 ### Federation (customization optional)
 
@@ -366,6 +405,8 @@ oidc:
   adminUsers:
     - "http://cilogon.org/serverE/users/12345"
     - "http://cilogon.org/serverA/users/67890"
+  adminGroups:
+    - "osg-ops"
 webPassword:
   existingSecret: my-web-passwd-secret
 
