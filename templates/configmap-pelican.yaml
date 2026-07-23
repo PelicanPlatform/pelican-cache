@@ -7,27 +7,24 @@ metadata:
 data:
   config.yaml: |
     ---
-    Cache:
-      StorageLocation: /cache
-      Port: {{ .Values.server.cachePort }}
+    Cache.StorageLocation: /cache
+    Cache.Port: {{ .Values.server.cachePort }}
 
-    Federation:
-      DiscoveryUrl: {{ .Values.federation.discoveryUrl | quote }}
+    Federation.DiscoveryUrl: {{ .Values.federation.discoveryUrl | quote }}
 
-    Server:
-      WebPort: {{ .Values.server.webPort }}
+    Server.WebPort: {{ .Values.server.webPort }}
 {{/* We cannot mount the TLS secret at /etc/pelican/certificates because that
 directory would become read-only and Pelican needs to write its own CA there.
 So we mount it at cert-orig instead (see deployment.yaml). */}}
-      TlsCertificate: "/etc/pelican/cert-orig/tls.crt"
-      TlsKey: "/etc/pelican/cert-orig/tls.key"
-      Hostname: {{ required "serverHostname is required" .Values.serverHostname | quote }}
+    Server.TlsCertificate: "/etc/pelican/cert-orig/tls.crt"
+    Server.TlsKey: "/etc/pelican/cert-orig/tls.key"
+    Server.Hostname: {{ required "serverHostname is required" .Values.serverHostname | quote }}
     {{- if .Values.oidc.adminUsers }}
-      UIAdminUsers:
-        {{- toYaml .Values.oidc.adminUsers | nindent 8 }}
+    Server.UIAdminUsers:
+      {{- toYaml .Values.oidc.adminUsers | nindent 6 }}
     {{- end }}
     {{- if .Values.webPassword.existingSecret }}
-      UIPasswordFile: /etc/pelican/server-web-passwd
+    Server.UIPasswordFile: /etc/pelican/server-web-passwd
     {{- end }}
 
     {{- if .Values.cacheConfig.blocksToPrefetch }}
@@ -60,25 +57,22 @@ So we mount it at cert-orig instead (see deployment.yaml). */}}
 
     {{- if .Values.oidc.enabled }}
 
-    OIDC:
-      ClientIDFile: /etc/pelican/oidc/client.id
-      ClientSecretFile: /etc/pelican/oidc/client.secret
+    OIDC.ClientIDFile: /etc/pelican/oidc/client.id
+    OIDC.ClientSecretFile: /etc/pelican/oidc/client.secret
     {{- end }}
 
-    Logging:
-      LogLocation: "/var/log/pelican/pelican.log"
-      Level: {{ .Values.loggingConfig.level | quote }}
+    Logging.LogLocation: "/var/log/pelican/pelican.log"
+    Logging.Level: {{ .Values.loggingConfig.level | quote }}
     {{- if .Values.loggingConfig.cache }}
-      Cache:
-        {{- toYaml .Values.loggingConfig.cache | nindent 8 }}
+    Logging.Cache:
+      {{- toYaml .Values.loggingConfig.cache | nindent 6 }}
     {{- end }}
 
     Topology.DisableCacheX509: true
 
     {{- if .Values.lotman.enabled }}
 
-    Lotman:
-      LotHome: /var/lib/pelican/lotman
+    Lotman.LotHome: /var/lib/pelican/lotman
     {{- end }}
 
     XrootD.Sitename: {{ required "sitename is required" .Values.sitename | quote }}
