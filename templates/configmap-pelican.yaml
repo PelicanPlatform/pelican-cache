@@ -26,6 +26,7 @@ So we mount it at cert-orig instead (see deployment.yaml). */}}
     {{- if .Values.oidc.adminGroups }}
     Server.AdminGroups:
       {{- toYaml .Values.oidc.adminGroups | nindent 6 }}
+    Server.GroupSource: "oidc"
     {{- end }}
     {{- if .Values.webPassword.existingSecret }}
     Server.UIPasswordFile: /etc/pelican/server-web-passwd
