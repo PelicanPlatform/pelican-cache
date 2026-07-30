@@ -156,9 +156,13 @@ oidc:
   # -- Name of an existing Secret with keys "client.id" and "client.secret"
   existingSecret: ""
   # -- List of CILogon admin user identities for the web UI.
-  # -- Must be nonempty when enabled is true.
+  # -- Either this or adminGroups (or both) must be nonempty when enabled is true.
   adminUsers: []
   #   - "http://cilogon.org/serverA/users/12345"
+  # -- List of CILogon admin group names for the web UI.
+  # -- Either this or adminUsers (or both) must be nonempty when enabled is true.
+  adminGroups: []
+  #   - "osg-ops"
 
 webPassword:
   # -- Required: Name of an existing Secret containing the web UI password file
