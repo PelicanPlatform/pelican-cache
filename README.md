@@ -28,10 +28,10 @@ This Helm chart collapses these three layers into a single, parameterized chart 
 The following secrets must exist before the cache can be started:
 
 -   Web server admin key
-    Create this with `pelican generate password`
+    Create this with `pelican-server generate password`
 
 -   Issuer key
-    Create this with `pelican key create`
+    Create this with `pelican-server key create`
 
 ### Minimal installation
 
