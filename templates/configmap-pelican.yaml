@@ -19,7 +19,7 @@ So we mount it at cert-orig instead (see deployment.yaml). */}}
     Server.TlsCertificate: "/etc/pelican/cert-orig/tls.crt"
     Server.TlsKey: "/etc/pelican/cert-orig/tls.key"
     Server.Hostname: {{ required "serverHostname is required" .Values.serverHostname | quote }}
-    Server.DbLocation: "/cache/pelican/pelican.sqlite"
+    Server.DbLocation: "/var/lib/pelican/pelican.sqlite"
     {{- if .Values.oidc.adminUsers }}
     Server.UIAdminUsers:
       {{- toYaml .Values.oidc.adminUsers | nindent 6 }}
