@@ -71,6 +71,12 @@ loggingConfig:
     Pfc: "debug"
     PssSetOpt: "debug"
 
+database:
+  persistence:
+    separateVolume: true
+    storageClass: 3x-replica-hdd-raddus
+    size: 50Gi
+
 lotman:
   enabled: true
   pvc:
