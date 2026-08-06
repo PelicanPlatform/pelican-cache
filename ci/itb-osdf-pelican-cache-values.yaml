@@ -60,6 +60,12 @@ loggingConfig:
     Ofs: debug
     Pfc: debug
 
+database:
+  persistence:
+    separateVolume: true
+    storageClass: 3x-replica-block
+    size: 10Gi
+
 nodeSelector:
   datacenter: wid-vlan5
 
