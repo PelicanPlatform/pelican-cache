@@ -111,6 +111,7 @@ Validate required values and conditional requirements.
 {{- define "pelican-cache.validateRequiredValues" -}}
 {{- $cacheStorageType := .Values.cache.type | default "" }}
 {{- $loggingPersist := .Values.logging.persistence.separateVolume }}
+{{- $databasePersist := .Values.database.persistence.separateVolume }}
 
 {{- if eq $cacheStorageType "pvc" }}
   {{- if not .Values.cache.pvc.existingClaim }}
@@ -138,6 +139,14 @@ Validate required values and conditional requirements.
   {{- if not .Values.logging.persistence.existingClaim }}
     {{- if eq (trim (default "" .Values.logging.persistence.storageClass)) "" }}
       {{- fail "logging.persistence.storageClass must be nonempty when logging.persistence.separateVolume is true and logging.persistence.existingClaim is not set" }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- if $databasePersist }}
+  {{- if not .Values.database.persistence.existingClaim }}
+    {{- if eq (trim (default "" .Values.database.persistence.storageClass)) "" }}
+      {{- fail "database.persistence.storageClass must be nonempty when database.persistence.separateVolume is true and database.persistence.existingClaim is not set" }}
     {{- end }}
   {{- end }}
 {{- end }}
