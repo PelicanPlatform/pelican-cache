@@ -41,6 +41,7 @@ helm install my-cache ./pelican-cache \
   --set sitename=my-site \
   --set cache.pvc.storageClass=my-storage-class \
   --set logging.persistence.storageClass=my-storage-class \
+  --set database.persistence.storageClass=my-storage-class \
   --set issuerKey.existingSecret=my-issuer-key-secret \
   --set webPassword.existingSecret=my-web-passwd-secret
 ```
@@ -497,7 +498,7 @@ The `Recreate` deployment strategy is used (not `RollingUpdate`) because the cac
 
 ```bash
 # Lint the chart
-helm lint . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
+helm lint . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set database.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
 
 # Render templates locally
 helm template my-cache . -f ci/uw-osdf-cache-values.yaml
