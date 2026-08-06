@@ -23,6 +23,7 @@ For more information: https://docs.pelicanplatform.org/
 
 {{- $fullname := include "pelican-cache.fullname" . }}
 {{- $loggingPersist := .Values.logging.persistence.separateVolume -}}
+{{- $databasePersist := .Values.database.persistence.separateVolume -}}
 
 {{- $createdPVCs := list -}}
 
@@ -36,6 +37,12 @@ For more information: https://docs.pelicanplatform.org/
 {{- $loggingShouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $loggingPvcName) | trim) "true" -}}
 {{- if and $loggingPersist (not .Values.logging.persistence.existingClaim) $loggingShouldRender -}}
 {{- $createdPVCs = append $createdPVCs $loggingPvcName -}}
+{{- end -}}
+
+{{- $databasePvcName := printf "%s-database" $fullname -}}
+{{- $databaseShouldRender := eq (include "pelican-cache.shouldRenderPvc" (dict "root" . "pvcName" $databasePvcName) | trim) "true" -}}
+{{- if and $databasePersist (not .Values.database.persistence.existingClaim) $databaseShouldRender -}}
+{{- $createdPVCs = append $createdPVCs $databasePvcName -}}
 {{- end -}}
 
 {{- $lotmanPvcName := printf "%s-lotman" $fullname -}}
