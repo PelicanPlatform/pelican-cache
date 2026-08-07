@@ -53,6 +53,7 @@ pelican-cache/
     ├── configmap-xrootd.yaml            # Custom xrootd.conf (conditional)
     ├── pvc-cache-data.yaml              # Cache data PVC (conditional on type=pvc)
     ├── pvc-logging.yaml                 # Logging PVC (conditional on logging.persistence.separateVolume)
+    ├── pvc-database.yaml                # Database PVC (conditional on database.persistence.separateVolume)
     ├── pvc-lotman.yaml                  # Lotman PVC (conditional on lotman.enabled)
     ├── validate.yaml                    # Render-time validation trigger (no resources emitted)
     └── NOTES.txt                        # Post-install notes
@@ -107,10 +108,10 @@ pelican-cache/
 
 ```bash
 # Lint
-helm lint . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
+helm lint . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set database.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
 
 # Render with minimal values
-helm template test . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
+helm template test . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set database.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
 
 # Render with full uw-osdf-cache-equivalent values (hostPath-backed)
 helm template test . -f ci/uw-osdf-cache-values.yaml
@@ -123,7 +124,7 @@ helm template test . -f ci/itb-osdf-pelican-cache-values.yaml
 helm template test .
 
 # Test validation: should fail with "cache.pvc.storageClass must be nonempty..."
-helm template test . --set serverHostname=test.local --set sitename=test-site --set cache.type=pvc --set logging.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
+helm template test . --set serverHostname=test.local --set sitename=test-site --set cache.type=pvc --set logging.persistence.storageClass=std --set database.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
 
 # Test existingClaim path: should succeed without storageClass
 helm template test . -f ci/uw-osdf-cache-values.yaml --set cache.pvc.existingClaim=my-existing-pvc
@@ -168,6 +169,7 @@ The chart enforces these rules at render time:
 | `cache.type == "hostPath"` | `cache.hostPath.path` must be nonempty |
 | Always | `issuerKey.existingSecret` must be nonempty |
 | `logging.persistence.separateVolume == true` AND `logging.persistence.existingClaim` is empty | `logging.persistence.storageClass` must be nonempty |
+| `database.persistence.separateVolume == true` AND `database.persistence.existingClaim` is empty | `database.persistence.storageClass` must be nonempty |
 | `lotman.enabled == true` AND `lotman.pvc.existingClaim` is empty | `lotman.pvc.storageClass` must be nonempty |
 | `oidc.enabled == true` | `oidc.existingSecret` must be nonempty |
 | Always | `sitename` must be nonempty |

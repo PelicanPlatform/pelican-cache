@@ -133,6 +133,25 @@ loggingConfig:
   # -- Number of rotated log files to keep
   rotateCount: 10
 
+# -- Logging configuration
+database:
+  persistence:
+    # -- Provision a dedicated PVC for the /var/lib/pelican volume.
+    # -- When false, the data volume is also mounted at /var/lib.
+    # -- This supports deployments that write database to /var/lib/pelican
+    # -- on the cache disk (e.g. via extraPelicanConfig.Server.DbLocation).
+    separateVolume: true
+    # -- Name of an existing PVC to use for database; if not set, will create
+    # -- a new PVC using the storageClass and size parameters below.
+    existingClaim: ""
+    # -- Storage class for creating a new database PVC; this must be specified
+    # -- unless you are using existingClaim.
+    storageClass: ""
+    # -- Database PVC size when creating a new PVC; this must be specified
+    # -- unless you are using existingClaim.
+    size: 20Gi
+
+
 # -- Lotman (lot-based storage management)
 lotman:
   # -- Enable lotman for the cache.  You must fill out the pvc section below

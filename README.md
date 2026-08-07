@@ -41,6 +41,7 @@ helm install my-cache ./pelican-cache \
   --set sitename=my-site \
   --set cache.pvc.storageClass=my-storage-class \
   --set logging.persistence.storageClass=my-storage-class \
+  --set database.persistence.storageClass=my-storage-class \
   --set issuerKey.existingSecret=my-issuer-key-secret \
   --set webPassword.existingSecret=my-web-passwd-secret
 ```
@@ -76,6 +77,7 @@ The chart manages several persistent volumes:
 |---|---|---|
 | Cache data | XRootD file cache | PVC or hostPath (`cache.type`) |
 | Logging | Pelican log files | Dedicated PVC (default) or shared with cache data (`logging.persistence.separateVolume`) |
+| Database | Pelican database files | Dedicated PVC (default) or shared with cache data (`database.persistence.separateVolume`) |
 | Issuer key | Pelican issuer/signing key | Existing Secret (`issuerKey.existingSecret`) |
 | Lotman data | Lot-based storage management | PVC (when `lotman.enabled`) |
 
@@ -138,6 +140,15 @@ Set `issuerKey.existingSecret` to that Secret name.
 | `loggingConfig.cache` | `{}` | Per-subsystem log levels (map, e.g. `{Pss: debug, Pfc: debug}`) |
 | `loggingConfig.rotateSize` | `500M` | Log file size threshold that triggers rotation |
 | `loggingConfig.rotateCount` | `10` | Number of rotated log files to keep |
+
+### Database (customization required)
+
+| Parameter | Default | Description |
+|---|---|---|
+| `database.persistence.separateVolume` | `true` | Provision a dedicated PVC for `/var/lib/pelican`; when `false`, the data volume is also mounted at `/var/lib` so `/var/lib/pelican` can still live on cache storage. Logrotate always runs. |
+| `database.persistence.existingClaim` | `""` | Existing database PVC name (if set, ignores `storageClass` and `size`) |
+| `database.persistence.storageClass` | `""` | StorageClass for new database PVC (required if `existingClaim` is not set and `separateVolume=true`) |
+| `database.persistence.size` | `20Gi` | Database PVC size (used when creating a new PVC) |
 
 ### Admin / Web UI (customization required)
 
@@ -339,6 +350,10 @@ logging:
   persistence:
     storageClass: standard
 
+database:
+  persistence:
+    storageClass: standard
+
 issuerKey:
   existingSecret: my-issuer-key-secret
 
@@ -394,6 +409,11 @@ logging:
     Pss: debug
     Pfc: debug
 
+database:
+  persistence:
+    storageClass: 3x-replica-hdd
+    size: 50Gi
+
 lotman:
   enabled: true
   pvc:
@@ -441,7 +461,7 @@ cache:
   pvc:
     storageClass: local-nvme
 
-# ...plus issuerKey, logging, and webPassword settings as shown above
+# ...plus issuerKey, logging, database and webPassword settings as shown above
 ```
 
 ## Validation Requirements
@@ -478,7 +498,7 @@ The `Recreate` deployment strategy is used (not `RollingUpdate`) because the cac
 
 ```bash
 # Lint the chart
-helm lint . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
+helm lint . --set serverHostname=test.example.com --set sitename=test-site --set cache.pvc.storageClass=std --set logging.persistence.storageClass=std --set database.persistence.storageClass=std --set issuerKey.existingSecret=issuer-key --set webPassword.existingSecret=pw
 
 # Render templates locally
 helm template my-cache . -f ci/uw-osdf-cache-values.yaml

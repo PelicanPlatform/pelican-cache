@@ -70,6 +70,11 @@ loggingConfig:
     Pss: warn
     Scitokens: warn
 
+# Logs go to the cache volume (/cache/pelican/), no separate database PVC.
+database:
+  persistence:
+    separateVolume: false
+
 oidc:
   enabled: true
   existingSecret: nrp-oidc-client-secret
@@ -113,6 +118,7 @@ securityContext:
 extraPelicanConfig:
   Server:
     EnableUI: true
+    DbLocation: "/cache/pelican/pelican.sqlite"
   IssuerKey: "/cache/privpelican/issuer.pem"
   Logging:
     LogLocation: "/cache/pelican/pelican.log"

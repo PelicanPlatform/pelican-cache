@@ -81,6 +81,13 @@ spec:
             - name: data
               mountPath: /var/log
             {{- end }}
+            {{- if .Values.database.persistence.separateVolume }}
+            - name: database-volume
+              mountPath: /var/lib/pelican/
+            {{- else }}
+            - name: data
+              mountPath: /var/lib
+            {{- end }}
             - name: issuer-key
               readOnly: true
               mountPath: /etc/pelican/issuer-keys/issuer.pem
@@ -183,6 +190,13 @@ its own CA there.  So we use a different directory here and in the Pelican confi
         - name: logging-volume
           persistentVolumeClaim:
             claimName: {{ if .Values.logging.persistence.existingClaim }}{{ .Values.logging.persistence.existingClaim }}{{ else }}{{ include "pelican-cache.fullname" . }}-logging{{ end }}
+        {{- end }}
+
+        # Database volume
+        {{- if .Values.database.persistence.separateVolume }}
+        - name: database-volume
+          persistentVolumeClaim:
+            claimName: {{ if .Values.database.persistence.existingClaim }}{{ .Values.database.persistence.existingClaim }}{{ else }}{{ include "pelican-cache.fullname" . }}-database{{ end }}
         {{- end }}
 
         # Issuer key
