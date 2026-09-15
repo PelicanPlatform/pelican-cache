@@ -12,6 +12,7 @@ env:
 jobs:
   publish:
     name: Package & Push
+    if: github.repository_owner == 'PelicanPlatform'
     runs-on: ubuntu-latest
     # Gate on CI passing (the ci.yaml workflow jobs)
     needs: []
