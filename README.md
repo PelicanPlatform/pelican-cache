@@ -240,6 +240,7 @@ not configurable.
 | `cacheConfig.filesMaxSize` | `""` | XRootD diskusage max tracked size. Must be &lt; low watermark. |
 | `cacheConfig.filesNominalSize` | `""` | XRootD diskusage nominal tracked size |
 | `cacheConfig.filesBaseSize` | `""` | XRootD diskusage base tracked size |
+| `cacheConfig.shutdownTimeoutSeconds` | `75` | Grace period (in seconds) to allow for connection draining before stopping the cache deployment |
 
 `highWaterMark` and `lowWaterMark` may be absolute sizes ending in `g` (gigabytes) or disk space percentages (no suffix).
 

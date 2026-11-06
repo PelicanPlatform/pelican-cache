@@ -60,6 +60,8 @@ cacheConfig:
   filesNominalSize: ""
   # -- diskusage base file tracking size (e.g. "16500g")
   filesBaseSize: ""
+  # -- connection draining grace period (in seconds) before stopping a deployment (e.g. "75")
+  shutdownTimeoutSeconds: 75
 
 # -- Issuer key configuration
 issuerKey:
