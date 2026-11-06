@@ -135,13 +135,12 @@ loggingConfig:
   # -- Number of rotated log files to keep
   rotateCount: 10
 
-# -- Logging configuration
+# -- Database configuration
 database:
   persistence:
     # -- Provision a dedicated PVC for the /var/lib/pelican volume.
-    # -- When false, the data volume is also mounted at /var/lib.
-    # -- This supports deployments that write database to /var/lib/pelican
-    # -- on the cache disk (e.g. via extraPelicanConfig.Server.DbLocation).
+    # -- When false, the pelican directory on the data volume is mounted at
+    # -- /var/lib/pelican (the same directory is accessible at /cache/pelican).
     separateVolume: true
     # -- Name of an existing PVC to use for database; if not set, will create
     # -- a new PVC using the storageClass and size parameters below.

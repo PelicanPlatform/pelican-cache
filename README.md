@@ -145,7 +145,7 @@ Set `issuerKey.existingSecret` to that Secret name.
 
 | Parameter | Default | Description |
 |---|---|---|
-| `database.persistence.separateVolume` | `true` | Provision a dedicated PVC for `/var/lib/pelican`; when `false`, the data volume is also mounted at `/var/lib` so `/var/lib/pelican` can still live on cache storage. Logrotate always runs. |
+| `database.persistence.separateVolume` | `true` | Provision a dedicated PVC for `/var/lib/pelican`; when `false`, the `pelican` directory on the data volume is mounted at `/var/lib/pelican` and also accessible at `/cache/pelican`. |
 | `database.persistence.existingClaim` | `""` | Existing database PVC name (if set, ignores `storageClass` and `size`) |
 | `database.persistence.storageClass` | `""` | StorageClass for new database PVC (required if `existingClaim` is not set and `separateVolume=true`) |
 | `database.persistence.size` | `20Gi` | Database PVC size (used when creating a new PVC) |

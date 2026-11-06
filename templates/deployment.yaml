@@ -88,7 +88,8 @@ spec:
               mountPath: /var/lib/pelican/
             {{- else }}
             - name: data
-              mountPath: /var/lib
+              mountPath: /var/lib/pelican
+              subPath: pelican
             {{- end }}
             - name: issuer-key
               readOnly: true

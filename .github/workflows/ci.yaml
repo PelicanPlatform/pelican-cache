@@ -55,6 +55,20 @@ jobs:
       - name: Helm template
         run: helm template test-release . ${{ matrix.args }}
 
+      - name: Check database mounts
+        run: |
+          check_shared() {
+            rendered="$(helm template test-release . "$@" --set database.persistence.separateVolume=false --show-only templates/deployment.yaml)"
+            printf '%s\n' "$rendered" | grep -F -A2 -- '- name: data' | grep -F -A1 'mountPath: /var/lib/pelican' | grep -Fx '              subPath: pelican'
+            if printf '%s\n' "$rendered" | grep -Eq '^[[:space:]]*mountPath: /var/lib/?[[:space:]]*$'; then
+              echo "::error::Shared database mount covers /var/lib"
+              exit 1
+            fi
+          }
+          check_shared ${{ matrix.args }}
+          rendered="$(helm template test-release . ${{ matrix.args }} --set database.persistence.separateVolume=true --set database.persistence.storageClass=standard --show-only templates/deployment.yaml)"
+          printf '%s\n' "$rendered" | grep -F -A1 -- '- name: database-volume' | grep -Fx '              mountPath: /var/lib/pelican/'
+
   required-values:
     name: Required values validation
     runs-on: ubuntu-latest
