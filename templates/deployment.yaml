@@ -81,7 +81,8 @@ spec:
               mountPath: /var/log/pelican
             {{- else }}
             - name: data
-              mountPath: /var/log
+              mountPath: /var/log/pelican
+              subPath: pelican
             {{- end }}
             {{- if .Values.database.persistence.separateVolume }}
             - name: database-volume
@@ -144,7 +145,8 @@ its own CA there.  So we use a different directory here and in the Pelican confi
               mountPath: /var/log/pelican
             {{- else }}
             - name: data
-              mountPath: /var/log
+              mountPath: /var/log/pelican
+              subPath: pelican
             {{- end }}
             - name: log-rotate-config
               mountPath: /etc/logrotate.d/

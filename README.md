@@ -132,7 +132,7 @@ Set `issuerKey.existingSecret` to that Secret name.
 
 | Parameter | Default | Description |
 |---|---|---|
-| `logging.persistence.separateVolume` | `true` | Provision a dedicated PVC for `/var/log/pelican`; when `false`, the data volume is also mounted at `/var/log` so `/var/log/pelican` can still live on cache storage. Logrotate always runs. |
+| `logging.persistence.separateVolume` | `true` | Provision a dedicated PVC for `/var/log/pelican`; when `false`, the `pelican` directory on the data volume is mounted at `/var/log/pelican` and also accessible at `/cache/pelican`. Logrotate always runs. |
 | `logging.persistence.existingClaim` | `""` | Existing logging PVC name (if set, ignores `storageClass` and `size`) |
 | `logging.persistence.storageClass` | `""` | StorageClass for new logging PVC (required if `existingClaim` is not set and `separateVolume=true`) |
 | `logging.persistence.size` | `50Gi` | Logging PVC size (used when creating a new PVC) |
