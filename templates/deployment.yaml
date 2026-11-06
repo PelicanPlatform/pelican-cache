@@ -22,8 +22,7 @@ spec:
         {{- include "pelican-cache.labels" . | nindent 8 }}
     spec:
       # Allow Pelican to drain connections
-      # Default Xrootd.ShutdownTimeout of 60s + 15s buffer
-      terminationGracePeriodSeconds: 75
+      terminationGracePeriodSeconds: {{ .Values.cacheConfig.shutdownTimeoutSeconds }}
       enableServiceLinks: false
       hostNetwork: {{ .Values.hostNetwork }}
       {{- with .Values.nodeSelector }}

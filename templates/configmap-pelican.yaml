@@ -81,6 +81,8 @@ So we mount it at cert-orig instead (see deployment.yaml). */}}
     Lotman.LotHome: /var/lib/pelican/lotman
     {{- end }}
 
+    # Give a 15s buffer between connection draining and deployment shutdown
+    Xrootd.ShutdownTimeout: {{ sub (int .Values.cacheConfig.shutdownTimeoutSeconds) 15 }}s
     XrootD.Sitename: {{ required "sitename is required" .Values.sitename | quote }}
     {{- if .Values.xrootd.extraConfig }}
     XrootD.ConfigFile: /etc/pelican/xrootd.conf
