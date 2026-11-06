@@ -82,7 +82,8 @@ So we mount it at cert-orig instead (see deployment.yaml). */}}
     {{- end }}
 
     # Give a 15s buffer between connection draining and deployment shutdown
-    Xrootd.ShutdownTimeout: {{ sub (int .Values.cacheConfig.shutdownTimeoutSeconds) 15 }}s
+    # Ensure that the value is >= 0
+    Xrootd.ShutdownTimeout: {{ max (sub (int .Values.cacheConfig.shutdownTimeoutSeconds) 15) 0 }}s
     XrootD.Sitename: {{ required "sitename is required" .Values.sitename | quote }}
     {{- if .Values.xrootd.extraConfig }}
     XrootD.ConfigFile: /etc/pelican/xrootd.conf
