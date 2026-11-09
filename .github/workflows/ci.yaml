@@ -55,6 +55,46 @@ jobs:
       - name: Helm template
         run: helm template test-release . ${{ matrix.args }}
 
+      - name: Check database mounts
+        run: |
+          check_shared() {
+            rendered="$(helm template test-release . "$@" --set database.persistence.separateVolume=false --show-only templates/deployment.yaml)"
+            printf '%s\n' "$rendered" | grep -F -A2 -- '- name: data' | grep -F -A1 'mountPath: /var/lib/pelican' | grep -Fx '              subPath: pelican'
+            if printf '%s\n' "$rendered" | grep -Eq '^[[:space:]]*mountPath: /var/lib/?[[:space:]]*$'; then
+              echo "::error::Shared database mount covers /var/lib"
+              exit 1
+            fi
+          }
+          check_shared ${{ matrix.args }}
+          rendered="$(helm template test-release . ${{ matrix.args }} --set database.persistence.separateVolume=true --set database.persistence.storageClass=standard --show-only templates/deployment.yaml)"
+          printf '%s\n' "$rendered" | grep -F -A1 -- '- name: database-volume' | grep -Fx '              mountPath: /var/lib/pelican/'
+
+      - name: Check logging mounts
+        run: |
+          check_mounts() {
+            local separate="$1"
+            shift
+            helm template test-release . "$@" --set logging.persistence.separateVolume="$separate" --set logging.persistence.storageClass=standard --show-only templates/deployment.yaml |
+              awk -v separate="$separate" '
+                /^        - name: pelican-cache$/ { container = "pelican-cache" }
+                /^        - name: logrotate$/ { container = "logrotate" }
+                /^      volumes:$/ { container = "" }
+                container && /^            - name: / { volume = $3 }
+                container && /^              mountPath: \/var\/log\/?$/ { bad = 1 }
+                container && /^              mountPath: \/var\/log\/pelican$/ {
+                  if (separate == "false" && volume == "data") {
+                    if (getline <= 0 || $0 != "              subPath: pelican") bad = 1
+                    else found[container]++
+                  } else if (separate == "true" && volume == "logging-volume") {
+                    found[container]++
+                  } else bad = 1
+                }
+                END { if (bad || found["pelican-cache"] != 1 || found["logrotate"] != 1) exit 1 }
+              '
+          }
+          check_mounts false ${{ matrix.args }}
+          check_mounts true ${{ matrix.args }}
+
   required-values:
     name: Required values validation
     runs-on: ubuntu-latest
